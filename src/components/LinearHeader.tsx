@@ -1,0 +1,135 @@
+"use client";
+
+import React, { useState } from "react";
+import {
+  RefreshCw,
+  Plus,
+  Share2,
+  Download,
+  Link,
+} from "lucide-react";
+import { ApplicationStatus, ActiveView } from "@/types/application";
+import { Button } from "@/components/ui/button";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+interface LinearHeaderProps {
+  activeView?: ActiveView;
+  activeStatusFilter: ApplicationStatus | "all";
+  onRefresh: () => void;
+  isRefreshing: boolean;
+  onOpenAddModal: () => void;
+  totalCount: number;
+}
+
+export const LinearHeader: React.FC<LinearHeaderProps> = ({
+  activeView = "board",
+  activeStatusFilter,
+  onRefresh,
+  isRefreshing,
+  onOpenAddModal,
+  totalCount,
+}) => {
+  const [starred, setStarred] = useState(false);
+
+  const getBreadcrumbLabel = () => {
+    if (activeView === "calendar") return "Interview Calendar";
+    if (activeView === "backlog") return "Backlog & Wishlist";
+    if (activeView === "analytics") return "Analytics & Funnel";
+    if (activeView === "inbox") return "AI Triage Inbox";
+
+    switch (activeStatusFilter) {
+      case "applied":
+        return "Applied";
+      case "reply":
+        return "Recruiter Reply";
+      case "interview":
+        return "Interview";
+      case "offer":
+        return "Offers";
+      case "rejected":
+        return "Not Selected";
+      default:
+        return "Board";
+    }
+  };
+
+  const handleCopyLink = () => {
+    if (typeof window !== "undefined") {
+      navigator.clipboard?.writeText(window.location.href);
+      alert("Board link copied to clipboard!");
+    }
+  };
+
+  return (
+    <header className="h-[48px] px-3 sm:px-4 border-b border-border flex items-center justify-between shrink-0 bg-card select-none text-[13px]">
+      {/* Left: Sidebar Trigger & Breadcrumbs */}
+      <div className="flex items-center gap-1.5 sm:gap-2 text-[13px] min-w-0">
+        <SidebarTrigger className="-ml-1 text-muted-foreground hover:text-foreground shrink-0" />
+        <span className="font-medium text-muted-foreground truncate hidden md:inline">Job Search 2026</span>
+        <span className="text-border hidden md:inline">/</span>
+        <span className="font-normal text-foreground truncate">{getBreadcrumbLabel()}</span>
+
+      </div>
+
+      {/* Right: Action Toolbar */}
+      <div className="flex items-center gap-1.5">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="hidden sm:inline-flex text-[12px] h-7 px-2.5 font-medium text-foreground bg-background border-border"
+            >
+              <Share2 className="w-3.5 h-3.5 mr-1 text-muted-foreground" />
+              Share
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-44">
+            <DropdownMenuItem onClick={handleCopyLink} className="cursor-pointer gap-2">
+              <Link className="w-3.5 h-3.5 text-muted-foreground" />
+              <span>Copy link</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => alert("Board snapshot saved!")}
+              className="cursor-pointer gap-2"
+            >
+              <Download className="w-3.5 h-3.5 text-muted-foreground" />
+              <span>Export snapshot</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <div className="h-4 w-px bg-border mx-0.5 hidden sm:block"></div>
+
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onRefresh}
+          disabled={isRefreshing}
+          className="text-muted-foreground hover:text-foreground h-7 w-7 p-0"
+          title="Refresh Applications"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-emerald-600" : ""}`} />
+        </Button>
+
+        <Button
+          size="sm"
+          onClick={onOpenAddModal}
+          className="h-7 text-[12px] px-3 font-semibold text-primary-foreground bg-primary hover:bg-primary/90 gap-1 active:scale-95 shadow-sm"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          <span>New</span>
+        </Button>
+      </div>
+    </header>
+  );
+};
+
+
+
