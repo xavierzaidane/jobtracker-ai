@@ -49,31 +49,26 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
       case "offer":
         return {
           label: "Tier 1",
-          bg: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
           dot: "bg-emerald-500",
         };
       case "interview":
         return {
           label: "In Progress",
-          bg: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20",
           dot: "bg-blue-500",
         };
       case "reply":
         return {
           label: "Recruiter Reply",
-          bg: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20",
           dot: "bg-amber-500",
         };
       case "rejected":
         return {
           label: "Archived",
-          bg: "bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20",
           dot: "bg-rose-500",
         };
       default:
         return {
           label: "Active",
-          bg: "bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20",
           dot: "bg-purple-500",
         };
     }
@@ -97,12 +92,14 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
         draggable="true"
         onDragStart={(e) => handleDragStart(e as unknown as React.DragEvent, application)}
         onClick={() => onView(application)}
-        className="group relative cursor-grab rounded-lg p-3 bg-card text-card-foreground border border-border shadow-xs hover:border-border/80 hover:shadow-sm transition-colors active:cursor-grabbing active:shadow-none overflow-hidden text-[13px] select-none w-full min-w-0 break-words"
+        className="group relative cursor-grab rounded-lg p-3 bg-card text-card-foreground border border-border hover:border-border/80 hover:shadow-sm transition-colors active:cursor-grabbing active:shadow-none overflow-hidden text-[13px] select-none w-full min-w-0 break-words"
       >
+
+
         {/* Top: Job Code & Avatar / Monogram */}
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <span className="text-[11px] font-semibold text-muted-foreground tracking-wide block mb-0.5">
+            <span className="text-[11px] font-normal text-muted-foreground tracking-wide block mb-0.5">
               {jobCode}
             </span>
             <h4 className="font-medium text-[13px] text-foreground leading-tight break-words line-clamp-2">
@@ -116,18 +113,11 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
           </div>
         </div>
 
-        {/* AI Insight snippet if available */}
-        {application.summary && (
-          <div className="mt-2.5 p-2 rounded-md bg-muted/50 border border-border/50 text-[11px] text-muted-foreground line-clamp-2 leading-relaxed break-words">
-            <span className="font-semibold text-primary mr-1">AI:</span>
-            {application.summary}
-          </div>
-        )}
 
         {/* Card Badges row */}
         <div className="flex items-center gap-1.5 mt-3 flex-wrap min-w-0">
           {/* Priority / Tag badge */}
-          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium border shrink-0 ${tag.bg}`}>
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium border shrink-0 ${tag}`}>
             <span className={`w-1.5 h-1.5 rounded-full ${tag.dot}`}></span>
             <span>{tag.label}</span>
           </span>

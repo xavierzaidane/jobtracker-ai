@@ -12,6 +12,7 @@ import {
   Trash2,
   Briefcase,
   FileText,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -20,6 +21,8 @@ interface JobWishlistProps {
   onApplyAndMoveToBoard: (job: WishlistJob) => void;
   onAddWishlistJob: (job: Partial<WishlistJob>) => void;
   onDeleteWishlistJob: (id: string) => void;
+  isAdding?: boolean;
+  setIsAdding?: (val: boolean) => void;
 }
 
 export const JobWishlist: React.FC<JobWishlistProps> = ({
@@ -27,8 +30,13 @@ export const JobWishlist: React.FC<JobWishlistProps> = ({
   onApplyAndMoveToBoard,
   onAddWishlistJob,
   onDeleteWishlistJob,
+  isAdding: propIsAdding,
+  setIsAdding: propSetIsAdding,
 }) => {
-  const [isAdding, setIsAdding] = useState(false);
+  const [internalIsAdding, setInternalIsAdding] = useState(false);
+  const isAdding = propIsAdding !== undefined ? propIsAdding : internalIsAdding;
+  const setIsAdding = propSetIsAdding || setInternalIsAdding;
+
   const [company, setCompany] = useState("");
   const [role, setRole] = useState("");
   const [location, setLocation] = useState("");
@@ -60,28 +68,6 @@ export const JobWishlist: React.FC<JobWishlistProps> = ({
 
   return (
     <div className="h-full w-full flex flex-col min-h-0 bg-card overflow-hidden">
-      {/* Header Bar */}
-      <div className="px-4 py-3 border-b border-border flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-2">
-          <Bookmark className="w-4 h-4 text-primary" />
-          <h2 className="text-sm font-semibold text-foreground">
-            Job Wishlist & Backlog
-          </h2>
-          <span className="text-xs text-muted-foreground ml-2 px-2 py-0.5 rounded-full bg-secondary">
-            {wishlist.length} Saved Roles
-          </span>
-        </div>
-
-        <Button
-          size="sm"
-          onClick={() => setIsAdding(!isAdding)}
-          className="h-7 text-xs px-2.5 font-medium gap-1"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          <span>Save New Job</span>
-        </Button>
-      </div>
-
       {/* Main Container */}
       <div className="flex-1 min-h-0 overflow-y-auto custom-scroll p-4 max-w-5xl mx-auto w-full space-y-4">
         {/* Quick Add Form */}
@@ -95,7 +81,17 @@ export const JobWishlist: React.FC<JobWishlistProps> = ({
                 <Briefcase className="w-3.5 h-3.5 text-primary" />
                 <span>Add Target Job Opportunity</span>
               </h3>
-              <span className="text-[11px] text-muted-foreground">Will be saved to Backlog</span>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-muted-foreground">Will be saved to Backlog</span>
+                <button
+                  type="button"
+                  onClick={() => setIsAdding(false)}
+                  className="text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted"
+                  title="Close form"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">

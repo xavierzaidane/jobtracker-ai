@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useCallback, useMemo } from "react"
+import React, { useState, useCallback, useMemo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -49,6 +49,7 @@ export interface EventManagerProps {
   defaultView?: "month" | "week" | "day" | "list"
   className?: string
   availableTags?: string[]
+  openCreateTrigger?: number
 }
 
 const defaultColors = [
@@ -70,6 +71,7 @@ export function EventManager({
   defaultView = "month",
   className,
   availableTags = ["Important", "Urgent", "Work", "Personal", "Team", "Client"],
+  openCreateTrigger,
 }: EventManagerProps) {
   const [events, setEvents] = useState<Event[]>(initialEvents)
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -77,6 +79,13 @@ export function EventManager({
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
+
+  useEffect(() => {
+    if (openCreateTrigger && openCreateTrigger > 0) {
+      setIsCreating(true)
+      setIsDialogOpen(true)
+    }
+  }, [openCreateTrigger])
   const [draggedEvent, setDraggedEvent] = useState<Event | null>(null)
   const [newEvent, setNewEvent] = useState<Partial<Event>>({
     title: "",
@@ -261,7 +270,7 @@ export function EventManager({
       {/* Header */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-          <h2 className="text-xl font-semibold sm:text-2xl">
+          <h2 className="text-xl font-normal sm:text-2xl">
             {view === "month" &&
               currentDate.toLocaleDateString("en-US", {
                 month: "long",
@@ -370,16 +379,7 @@ export function EventManager({
             </Button>
           </div>
 
-          <Button
-            onClick={() => {
-              setIsCreating(true)
-              setIsDialogOpen(true)
-            }}
-            className="w-full sm:w-auto"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            New Event
-          </Button>
+
         </div>
       </div>
 
@@ -980,7 +980,7 @@ function EventCard({
             <Card className="border-2 p-3 shadow-xl">
               <div className="space-y-2">
                 <div className="flex items-start justify-between gap-2">
-                  <h4 className="font-semibold text-sm leading-tight">{event.title}</h4>
+                  <h4 className="font-normal text-sm leading-tight">{event.title}</h4>
                   <div className={cn("h-3 w-3 rounded-full flex-shrink-0", colorClasses.bg)} />
                 </div>
                 {event.description && <p className="text-xs text-muted-foreground line-clamp-2">{event.description}</p>}
@@ -1027,7 +1027,7 @@ function EventCard({
           isHovered && "scale-[1.03] shadow-2xl ring-2 ring-white/50",
         )}
       >
-        <div className="font-semibold">{event.title}</div>
+        <div className="font-normal">{event.title}</div>
         {event.description && <div className="mt-1 text-sm opacity-90 line-clamp-2">{event.description}</div>}
         <div className="mt-2 flex items-center gap-2 text-xs opacity-80">
           <Clock className="h-3 w-3" />
@@ -1076,7 +1076,7 @@ function EventCard({
           <Card className="border-2 p-4 shadow-xl">
             <div className="space-y-3">
               <div className="flex items-start justify-between gap-2">
-                <h4 className="font-semibold leading-tight">{event.title}</h4>
+                <h4 className="font-normal leading-tight">{event.title}</h4>
                 <div className={cn("h-4 w-4 rounded-full flex-shrink-0", colorClasses.bg)} />
               </div>
               {event.description && <p className="text-sm text-muted-foreground">{event.description}</p>}
@@ -1181,7 +1181,7 @@ function MonthView({
               <div
                 className={cn(
                   "mb-1 flex h-5 w-5 items-center justify-center rounded-full text-xs sm:h-6 sm:w-6 sm:text-sm",
-                  isToday && "bg-primary text-primary-foreground font-semibold",
+                  isToday && "bg-primary text-primary-foreground font-normal",
                 )}
               >
                 {day.getDate()}
@@ -1415,7 +1415,7 @@ function ListView({
       <div className="space-y-6">
         {Object.entries(groupedEvents).map(([date, dateEvents]) => (
           <div key={date} className="space-y-3">
-            <h3 className="text-xs font-semibold text-muted-foreground sm:text-sm">{date}</h3>
+            <h3 className="text-xs font-normal text-muted-foreground sm:text-sm">{date}</h3>
             <div className="space-y-2">
               {dateEvents.map((event) => {
                 const colorClasses = getColorClasses(event.color)
@@ -1430,7 +1430,7 @@ function ListView({
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                           <div className="min-w-0">
-                            <h4 className="font-semibold text-sm group-hover:text-primary transition-colors sm:text-base truncate">
+                            <h4 className="font-normal text-sm group-hover:text-primary transition-colors sm:text-base truncate">
                               {event.title}
                             </h4>
                             {event.description && (

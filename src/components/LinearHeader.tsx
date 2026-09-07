@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import {
   RefreshCw,
   Plus,
   Share2,
   Download,
   Link,
+  Sparkles,
 } from "lucide-react";
 import { ApplicationStatus, ActiveView } from "@/types/application";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,13 @@ interface LinearHeaderProps {
   isRefreshing: boolean;
   onOpenAddModal: () => void;
   totalCount: number;
+  onOpenAddWishlist?: () => void;
+  isWishlistAdding?: boolean;
+  onOpenAddEvent?: () => void;
+  triageFilter?: "pending" | "approved";
+  onTriageFilterChange?: (filter: "pending" | "approved") => void;
+  pendingTriageCount?: number;
+  approvedTriageCount?: number;
 }
 
 export const LinearHeader: React.FC<LinearHeaderProps> = ({
@@ -34,9 +42,14 @@ export const LinearHeader: React.FC<LinearHeaderProps> = ({
   isRefreshing,
   onOpenAddModal,
   totalCount,
+  onOpenAddWishlist,
+  isWishlistAdding = false,
+  onOpenAddEvent,
+  triageFilter = "pending",
+  onTriageFilterChange,
+  pendingTriageCount = 0,
+  approvedTriageCount = 0,
 }) => {
-  const [starred, setStarred] = useState(false);
-
   const getBreadcrumbLabel = () => {
     if (activeView === "calendar") return "Interview Calendar";
     if (activeView === "backlog") return "Backlog & Wishlist";
@@ -74,7 +87,6 @@ export const LinearHeader: React.FC<LinearHeaderProps> = ({
         <span className="font-medium text-muted-foreground truncate hidden md:inline">Job Search 2026</span>
         <span className="text-border hidden md:inline">/</span>
         <span className="font-normal text-foreground truncate">{getBreadcrumbLabel()}</span>
-
       </div>
 
       {/* Right: Action Toolbar */}
@@ -118,14 +130,76 @@ export const LinearHeader: React.FC<LinearHeaderProps> = ({
           <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-emerald-600" : ""}`} />
         </Button>
 
-        <Button
-          size="sm"
-          onClick={onOpenAddModal}
-          className="h-7 text-[12px] px-3 font-semibold text-primary-foreground bg-primary hover:bg-primary/90 gap-1 active:scale-95 shadow-sm"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          <span>New</span>
-        </Button>
+        {/* View-Specific Primary Actions */}
+        {activeView === "board" && (
+          <Button
+            size="sm"
+            onClick={onOpenAddModal}
+            className="h-7 text-[12px] px-3 font-semibold text-primary-foreground bg-primary hover:bg-primary/90 gap-1 active:scale-95 shadow-xs"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>New Job</span>
+          </Button>
+        )}
+
+        {activeView === "backlog" && (
+          <Button
+            size="sm"
+            onClick={onOpenAddWishlist}
+            variant={isWishlistAdding ? "secondary" : "default"}
+            className="h-7 text-[12px] px-3 font-semibold gap-1 active:scale-95 shadow-xs"
+          >
+            <Plus className={`w-3.5 h-3.5 ${isWishlistAdding ? "rotate-45 transition-transform" : ""}`} />
+            <span>{isWishlistAdding ? "Close Form" : "Save Opportunity"}</span>
+          </Button>
+        )}
+
+        {activeView === "calendar" && (
+          <Button
+            size="sm"
+            onClick={onOpenAddEvent}
+            className="h-7 text-[12px] px-3 font-semibold text-primary-foreground bg-primary hover:bg-primary/90 gap-1 active:scale-95 shadow-xs"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>New Event</span>
+          </Button>
+        )}
+
+        {activeView === "inbox" && (
+          <div className="flex items-center gap-2">
+            {/* Live Indicator */}
+            <span className="hidden md:inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+              <Sparkles className="w-3 h-3" />
+              <span>n8n Live</span>
+            </span>
+
+            {/* Segmented Filter Pills */}
+            <div className="flex items-center gap-0.5 bg-secondary p-0.5 rounded-lg text-xs">
+              <button
+                type="button"
+                onClick={() => onTriageFilterChange?.("pending")}
+                className={`px-2.5 py-1 rounded-md transition font-medium text-[11px] ${
+                  triageFilter === "pending"
+                    ? "bg-card text-foreground shadow-2xs font-semibold"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Pending ({pendingTriageCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => onTriageFilterChange?.("approved")}
+                className={`px-2.5 py-1 rounded-md transition font-medium text-[11px] ${
+                  triageFilter === "approved"
+                    ? "bg-card text-foreground shadow-2xs font-semibold"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Approved ({approvedTriageCount})
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </header>
   );

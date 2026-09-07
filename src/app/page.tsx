@@ -55,6 +55,11 @@ export default function DashboardPage() {
   const [editingApplication, setEditingApplication] = useState<JobApplication | null>(null);
   const [defaultStatusForNew, setDefaultStatusForNew] = useState<ApplicationStatus>("applied");
 
+  // View coordination states
+  const [isWishlistAdding, setIsWishlistAdding] = useState(false);
+  const [calendarAddEventTrigger, setCalendarAddEventTrigger] = useState(0);
+  const [triageFilter, setTriageFilter] = useState<"pending" | "approved">("pending");
+
   // 1. Initial Load & Data Fetching with timeout safety
   const loadData = useCallback(async () => {
     setIsRefreshing(true);
@@ -431,6 +436,12 @@ export default function DashboardPage() {
     setTriageEmails((prev) => prev.filter((e) => e.id !== id));
   };
 
+  const handleBatchApproveTriageEmails = (emailsToApprove: TriageEmail[]) => {
+    emailsToApprove.forEach((email) => {
+      handleApproveTriageEmail(email);
+    });
+  };
+
   return (
     <SidebarProvider defaultOpen={true} className="h-screen h-[100dvh] w-screen max-w-[100vw] overflow-hidden bg-sidebar">
       {/* Official shadcn Sidebar */}
@@ -462,6 +473,13 @@ export default function DashboardPage() {
             isRefreshing={isRefreshing}
             onOpenAddModal={() => handleOpenAddModal("applied")}
             totalCount={filteredApplications.length}
+            onOpenAddWishlist={() => setIsWishlistAdding((prev) => !prev)}
+            isWishlistAdding={isWishlistAdding}
+            onOpenAddEvent={() => setCalendarAddEventTrigger((prev) => prev + 1)}
+            triageFilter={triageFilter}
+            onTriageFilterChange={setTriageFilter}
+            pendingTriageCount={triageEmails.filter((e) => !e.is_approved).length}
+            approvedTriageCount={triageEmails.filter((e) => e.is_approved).length}
           />
 
           {/* View Container */}
@@ -486,6 +504,7 @@ export default function DashboardPage() {
                 applications={applications}
                 onViewApplication={setSelectedApplication}
                 onAddEvent={handleAddInterviewEvent}
+                openCreateTrigger={calendarAddEventTrigger}
               />
             </div>
           )}
@@ -497,6 +516,8 @@ export default function DashboardPage() {
                 onApplyAndMoveToBoard={handleApplyAndMoveToBoard}
                 onAddWishlistJob={handleAddWishlistJob}
                 onDeleteWishlistJob={handleDeleteWishlistJob}
+                isAdding={isWishlistAdding}
+                setIsAdding={setIsWishlistAdding}
               />
             </div>
           )}
@@ -513,6 +534,9 @@ export default function DashboardPage() {
                 emails={triageEmails}
                 onApproveEmail={handleApproveTriageEmail}
                 onDismissEmail={handleDismissTriageEmail}
+                onBatchApproveEmails={handleBatchApproveTriageEmails}
+                filter={triageFilter}
+                onFilterChange={setTriageFilter}
               />
             </div>
           )}

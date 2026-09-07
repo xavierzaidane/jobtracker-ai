@@ -9,11 +9,13 @@ interface InterviewCalendarProps {
   applications: JobApplication[]
   onViewApplication?: (application: JobApplication) => void
   onAddEvent?: (event: Partial<InterviewEvent>) => void
+  openCreateTrigger?: number
 }
 
 export const InterviewCalendar: React.FC<InterviewCalendarProps> = ({
   events = [],
   applications = [],
+  openCreateTrigger,
 }) => {
   // Convert tracker interview events into EventManager Event objects
   const initialEvents: Event[] = useMemo(() => {
@@ -132,6 +134,7 @@ export const InterviewCalendar: React.FC<InterviewCalendarProps> = ({
             "Referral",
           ]}
           defaultView="month"
+          openCreateTrigger={openCreateTrigger}
           onEventCreate={(event) => console.log("Interview event created:", event)}
           onEventUpdate={(id, event) => console.log("Interview event updated:", id, event)}
           onEventDelete={(id) => console.log("Interview event deleted:", id)}

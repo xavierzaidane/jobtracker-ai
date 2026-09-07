@@ -1,220 +1,250 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { TriageEmail, ApplicationStatus } from "@/types/application";
+import { CheckCircle2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Inbox,
-  Sparkles,
-  Check,
-  CheckCircle2,
-  X,
-  Mail,
-  Building,
-  ShieldCheck,
-  ChevronDown,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+} from "@/components/ui/table";
+import { InboxToolbar } from "./inbox/InboxToolbar";
+import { InboxGroupHeader } from "./inbox/InboxGroupHeader";
+import { InboxRow } from "./inbox/InboxRow";
+import { InboxDetailSheet } from "./inbox/InboxDetailSheet";
 
 interface AITriageInboxProps {
   emails: TriageEmail[];
   onApproveEmail: (email: TriageEmail, overrideStatus?: ApplicationStatus) => void;
   onDismissEmail: (id: string) => void;
+  onBatchApproveEmails?: (emails: TriageEmail[]) => void;
+  filter?: "pending" | "approved";
+  onFilterChange?: (filter: "pending" | "approved") => void;
 }
 
 export const AITriageInbox: React.FC<AITriageInboxProps> = ({
   emails,
   onApproveEmail,
   onDismissEmail,
+  onBatchApproveEmails,
+  filter: propFilter,
+  onFilterChange: propOnFilterChange,
 }) => {
-  const [filter, setFilter] = useState<"pending" | "approved">("pending");
+  const [internalFilter, setInternalFilter] = useState<"pending" | "approved">("pending");
+  const filter = propFilter !== undefined ? propFilter : internalFilter;
+  const setFilter = propOnFilterChange || setInternalFilter;
 
-  const displayedEmails = emails.filter((em) =>
-    filter === "pending" ? !em.is_approved : em.is_approved
-  );
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [inspectingEmail, setInspectingEmail] = useState<TriageEmail | null>(null);
 
-  const getStatusBadge = (status: ApplicationStatus) => {
-    switch (status) {
-      case "offer":
-        return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20";
-      case "interview":
-        return "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20";
-      case "reply":
-        return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20";
-      case "rejected":
-        return "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20";
-      default:
-        return "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20";
+  // Filter emails by active tab (pending vs approved)
+  const tabEmails = useMemo(() => {
+    return emails.filter((em) =>
+      filter === "pending" ? !em.is_approved : em.is_approved
+    );
+  }, [emails, filter]);
+
+  // Apply search filter
+  const filteredEmails = useMemo(() => {
+    if (!searchQuery.trim()) return tabEmails;
+    const q = searchQuery.toLowerCase().trim();
+    return tabEmails.filter(
+      (em) =>
+        em.company.toLowerCase().includes(q) ||
+        em.role.toLowerCase().includes(q) ||
+        em.sender.toLowerCase().includes(q) ||
+        em.subject.toLowerCase().includes(q) ||
+        em.detected_status.toLowerCase().includes(q)
+    );
+  }, [tabEmails, searchQuery]);
+
+  // Group emails matching reference design sections
+  const groups = useMemo(() => {
+    const interviews = filteredEmails.filter(
+      (e) => e.detected_status === "interview" || e.detected_status === "offer"
+    );
+    const replies = filteredEmails.filter((e) => e.detected_status === "reply");
+    const others = filteredEmails.filter(
+      (e) =>
+        e.detected_status !== "interview" &&
+        e.detected_status !== "offer" &&
+        e.detected_status !== "reply"
+    );
+
+    return [
+      {
+        id: "interviews",
+        title: "Interviews & Next Steps",
+        emails: interviews,
+        accent: "text-blue-600 dark:text-blue-400",
+      },
+      {
+        id: "replies",
+        title: "Recruiter Replies & Outreach",
+        emails: replies,
+        accent: "text-amber-600 dark:text-amber-400",
+      },
+      {
+        id: "others",
+        title: "Applications & Status Updates",
+        emails: others,
+        accent: "text-purple-600 dark:text-purple-400",
+      },
+    ].filter((g) => g.emails.length > 0);
+  }, [filteredEmails]);
+
+  // Selection handlers
+  const isAllSelected =
+    filteredEmails.length > 0 &&
+    filteredEmails.every((e) => selectedIds.has(e.id));
+
+  const isSomeSelected =
+    filteredEmails.some((e) => selectedIds.has(e.id)) && !isAllSelected;
+
+  const handleToggleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(new Set(filteredEmails.map((e) => e.id)));
+    } else {
+      setSelectedIds(new Set());
+    }
+  };
+
+  const handleToggleGroup = (groupEmails: TriageEmail[], checked: boolean) => {
+    const next = new Set(selectedIds);
+    groupEmails.forEach((e) => {
+      if (checked) {
+        next.add(e.id);
+      } else {
+        next.delete(e.id);
+      }
+    });
+    setSelectedIds(next);
+  };
+
+  const handleToggleRow = (id: string, checked: boolean) => {
+    const next = new Set(selectedIds);
+    if (checked) {
+      next.add(id);
+    } else {
+      next.delete(id);
+    }
+    setSelectedIds(next);
+  };
+
+  // Batch action trigger
+  const handleBatchApprove = () => {
+    const selectedList = filteredEmails.filter((e) => selectedIds.has(e.id));
+    if (selectedList.length > 0) {
+      if (onBatchApproveEmails) {
+        onBatchApproveEmails(selectedList);
+      } else {
+        selectedList.forEach((e) => onApproveEmail(e));
+      }
+      setSelectedIds(new Set());
+    } else {
+      const highMatch = filteredEmails.filter((e) => e.confidence_score >= 0.9);
+      if (highMatch.length > 0) {
+        if (onBatchApproveEmails) {
+          onBatchApproveEmails(highMatch);
+        } else {
+          highMatch.forEach((e) => onApproveEmail(e));
+        }
+      }
     }
   };
 
   return (
     <div className="h-full w-full flex flex-col min-h-0 bg-card overflow-hidden">
-      {/* Header Bar */}
-      <div className="px-4 py-3 border-b border-border flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-2">
-          <Inbox className="w-4 h-4 text-primary" />
-          <h2 className="text-sm font-semibold text-foreground">
-            Gemini AI Email Triage Feed
-          </h2>
-          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-            <Sparkles className="w-3 h-3" />
-            <span>n8n Pipeline Live</span>
-          </span>
-        </div>
+      {/* Scrollable Container */}
+      <div className="flex-1 min-h-0 overflow-y-auto custom-scroll p-4 sm:p-6 max-w-8xl mx-auto w-full space-y-4">
+        {/* Main Card Wrapper matching reference design */}
+        <div className="bg-card rounded-2xl border border-border/80 shadow-xs overflow-hidden flex flex-col">
+          {/* Sub-component: Toolbar */}
+          <InboxToolbar
+            filter={filter}
+            totalCount={filteredEmails.length}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            selectedCount={selectedIds.size}
+            onBatchApprove={handleBatchApprove}
+          />
 
-        {/* Tab switch */}
-        <div className="flex items-center gap-1 bg-secondary p-0.5 rounded-lg text-xs">
-          <button
-            onClick={() => setFilter("pending")}
-            className={`px-2.5 py-1 rounded-md transition font-medium ${
-              filter === "pending"
-                ? "bg-card text-foreground shadow-2xs font-semibold"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Pending Review ({emails.filter((e) => !e.is_approved).length})
-          </button>
-          <button
-            onClick={() => setFilter("approved")}
-            className={`px-2.5 py-1 rounded-md transition font-medium ${
-              filter === "approved"
-                ? "bg-card text-foreground shadow-2xs font-semibold"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Processed ({emails.filter((e) => e.is_approved).length})
-          </button>
-        </div>
-      </div>
-
-      {/* Main Email Stream */}
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scroll p-4 max-w-5xl mx-auto w-full space-y-3">
-        {displayedEmails.length === 0 ? (
-          <div className="p-12 text-center text-xs text-muted-foreground border border-dashed border-border rounded-xl space-y-1">
-            <CheckCircle2 className="w-6 h-6 text-primary mx-auto mb-2 opacity-80" />
-            <p className="font-semibold text-foreground">Triage Inbox is completely caught up!</p>
-            <p>New application emails detected by Gmail & n8n will automatically stream here.</p>
-          </div>
-        ) : (
-          displayedEmails.map((email) => (
-            <div
-              key={email.id}
-              className="p-4 rounded-xl border border-border bg-card shadow-xs hover:border-border/80 transition flex flex-col gap-3"
-            >
-              {/* Top info */}
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-sm text-foreground">
-                      {email.company}
-                    </span>
-                    <span className="text-xs text-muted-foreground font-medium">
-                      · {email.role}
-                    </span>
-                    <span
-                      className={`text-[11px] px-2 py-0.5 rounded-md border font-medium ${getStatusBadge(
-                        email.detected_status
-                      )}`}
-                    >
-                      Detected: {email.detected_status}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                    <Mail className="w-3.5 h-3.5 shrink-0" />
-                    <span className="font-medium text-foreground truncate">{email.subject}</span>
-                    <span>·</span>
-                    <span className="shrink-0">{email.sender}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border">
-                    <ShieldCheck className="w-3 h-3 text-primary" />
-                    <span>{Math.round(email.confidence_score * 100)}% Match</span>
-                  </span>
-                </div>
-              </div>
-
-              {/* AI Reasoning box */}
-              <div className="p-2.5 rounded-lg bg-muted/40 border border-border/40 text-xs space-y-1">
-                <div className="flex items-center gap-1.5 text-primary font-medium text-[11px]">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Gemini Extraction Analysis:</span>
-                </div>
-                <p className="text-muted-foreground text-[11px] leading-relaxed">
-                  {email.ai_rationale}
-                </p>
-              </div>
-
-              {/* Action Toolbar */}
-              <div className="flex items-center justify-between pt-1 border-t border-border/50 text-xs">
-                <span className="text-[10px] text-muted-foreground">
-                  Received {new Date(email.date).toLocaleDateString()} at{" "}
-                  {new Date(email.date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                </span>
-
-                {!email.is_approved ? (
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onDismissEmail(email.id)}
-                      className="h-7 text-xs text-muted-foreground hover:text-destructive px-2"
-                    >
-                      <X className="w-3.5 h-3.5 mr-1" />
-                      <span>Dismiss</span>
-                    </Button>
-
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm" className="h-7 text-xs px-2 gap-1">
-                          <span>Override Status</span>
-                          <ChevronDown className="w-3 h-3" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {(["applied", "reply", "interview", "offer", "rejected"] as ApplicationStatus[]).map(
-                          (status) => (
-                            <DropdownMenuItem
-                              key={status}
-                              onClick={() => onApproveEmail(email, status)}
-                              className="capitalize cursor-pointer"
-                            >
-                              Move as {status}
-                            </DropdownMenuItem>
-                          )
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-
-                    <Button
-                      size="sm"
-                      onClick={() => onApproveEmail(email)}
-                      className="h-7 text-xs px-3 font-semibold bg-primary text-primary-foreground hover:bg-primary/90 gap-1 shadow-xs"
-                    >
-                      <Check className="w-3.5 h-3.5" />
-                      <span>Approve to Board</span>
-                    </Button>
-                  </div>
-                ) : (
-                  <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Added to Kanban Board</span>
-                  </span>
-                )}
-              </div>
+          {/* Table Container */}
+          {filteredEmails.length === 0 ? (
+            <div className="p-12 text-center text-xs text-muted-foreground border-dashed space-y-2">
+              <CheckCircle2 className="w-8 h-8 text-primary mx-auto mb-2 opacity-80" />
+              <p className="font-semibold text-foreground text-sm">
+                {searchQuery ? "No matching emails found" : "All caught up!"}
+              </p>
+              <p>
+                {searchQuery
+                  ? "Try adjusting your search terms."
+                  : "Incoming recruiter emails parsed by Gemini & n8n will automatically populate here."}
+              </p>
             </div>
-          ))
-        )}
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-input">
+                  <TableRow className="border-b border-border/60 hover:bg-transparent text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">
+                    <TableHead className="w-12 pl-5 pr-2">
+                      <Checkbox
+                        checked={isAllSelected ? true : isSomeSelected ? "indeterminate" : false}
+                        onCheckedChange={handleToggleSelectAll}
+                        aria-label="Select all"
+                      />
+                    </TableHead>
+                    <TableHead className="min-w-[220px]">Company & Role</TableHead>
+                    <TableHead className="min-w-[200px]">Detection & Match</TableHead>
+                    <TableHead className="min-w-[190px]">Source & Time</TableHead>
+                    <TableHead className="text-right pr-6 min-w-[150px]">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {groups.map((group) => (
+                    <React.Fragment key={group.id}>
+                      {/* Sub-component: Group Section Divider */}
+                      <InboxGroupHeader
+                        title={group.title}
+                        count={group.emails.length}
+                        accent={group.accent}
+                        emails={group.emails}
+                        selectedIds={selectedIds}
+                        onToggleGroup={handleToggleGroup}
+                      />
+
+                      {/* Sub-component: Data Rows */}
+                      {group.emails.map((email) => (
+                        <InboxRow
+                          key={email.id}
+                          email={email}
+                          isSelected={selectedIds.has(email.id)}
+                          onToggleRow={handleToggleRow}
+                          onInspect={setInspectingEmail}
+                          onApproveEmail={onApproveEmail}
+                          onDismissEmail={onDismissEmail}
+                        />
+                      ))}
+                    </React.Fragment>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Sub-component: Slide-over Inspection Sheet (Drawer) */}
+      <InboxDetailSheet
+        email={inspectingEmail}
+        onClose={() => setInspectingEmail(null)}
+        onApproveEmail={onApproveEmail}
+        onDismissEmail={onDismissEmail}
+      />
     </div>
   );
 };
-
