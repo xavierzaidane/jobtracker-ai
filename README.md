@@ -19,7 +19,7 @@
 
 ---
 
-## 🌟 Overview
+## Overview
 
 Job hunting across dozens of platforms often leads to lost recruiter emails, missed interviews, and fragmented tracking. **CareerOps** solves this by uniting **automated email ingestion** with a **high-speed, desktop-class web dashboard**:
 
@@ -31,9 +31,9 @@ Job hunting across dozens of platforms often leads to lost recruiter emails, mis
 
 ---
 
-## ✨ Key Features
+## Key Features
 
-### 📋 1. Classic 5-Column Kanban Board
+### 1. Classic 5-Column Kanban Board
 - **Fluid Drag-and-Drop**: Built with `@hello-pangea/dnd` and dynamic drop indicators.
 - **5 Standard Stages**:
   - `Applied` 
@@ -44,18 +44,18 @@ Job hunting across dozens of platforms often leads to lost recruiter emails, mis
 - **Inline Card Creation**: Press `N` or click `+ Add Application` to quickly log opportunities.
 - **Burn Barrel Zone**: Drag cards to the trash barrel to quickly archive or delete records.
 
-### 📅 2. Synchronized Interview Calendar
+### 2. Synchronized Interview Calendar
 - **Automatic Scheduling**: Automatically derives interview rounds, recruiter screens, and offer acceptance deadlines from your Kanban board data.
 - **Multi-View Engine**: Switch between **Month**, **Week**, **Day**, and **Agenda List** views.
 - **Direct Event Inspection**: Clicking any calendar event instantly pops open the full **Application Detail Modal** with notes, interview history, and recruiter contacts.
 
-### 📥 3. AI Triage Inbox
+### 3. AI Triage Inbox
 - **Streamlined Email Triage**: Inspect incoming job communications with full context before merging or updating your board.
 - **Confidence & Rationale**: Displays Gemini's reasoning and detection confidence (e.g. `98% - Recruiter proposed interview availability`).
 - **One-Click Actions**: Approve detected status, reassign categories, or reject noise in seconds.
 - **Dual Stream**: Works with live Supabase data or built-in test fixtures with simulated n8n synchronization.
 
-### 📊 4. Application Analytics & Insights
+### 4. Application Analytics & Insights
 - **Pipeline Metrics Grid**: Real-time conversion rates, active interview counts, and response ratios.
 - **Visual Analytics**:
   - Weekly outreach velocity and goals.
@@ -63,14 +63,14 @@ Job hunting across dozens of platforms often leads to lost recruiter emails, mis
   - Top target roles breakdown.
   - Chronological activity log.
 
-### 🔔 5. Real-Time Audio & Desktop Alerts
+### 5. Real-Time Audio & Desktop Alerts
 - Synthesized Web Audio chimes for new status updates and interview notifications.
 - Native browser desktop notifications with permission management.
 - Live unread badges in the sidebar.
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```mermaid
 flowchart TD
@@ -97,7 +97,7 @@ flowchart TD
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 .
@@ -144,7 +144,7 @@ flowchart TD
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Run the Frontend (Takes 1 minute)
 
@@ -165,7 +165,7 @@ Visit [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
-## ⚙️ Backend & Automation Setup
+## Backend & Automation Setup
 
 ### 2. Connect Supabase (Optional for Live Persistence)
 
@@ -234,7 +234,7 @@ Incoming updates automatically post rich embeds to Discord:
 
 ---
 
-## 🛠️ Tech Stack & Libraries
+## Tech Stack & Libraries
 
 | Layer | Technology | Purpose |
 |---|---|---|
@@ -250,6 +250,6 @@ Incoming updates automatically post rich embeds to Discord:
 
 ---
 
-## 📄 License
+## License
 
 This project is open-source and available under the [MIT License](LICENSE).
