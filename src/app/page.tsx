@@ -1,17 +1,17 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { User } from "@supabase/supabase-js";
 import {
   JobApplication,
   ApplicationStatus,
   ActiveView,
-  WishlistJob,
   InterviewEvent,
   TriageEmail,
+  AppNotification,
 } from "@/types/application";
 import {
   INITIAL_MOCK_APPLICATIONS,
-  INITIAL_WISHLIST_JOBS,
   INITIAL_INTERVIEW_EVENTS,
   INITIAL_TRIAGE_EMAILS,
 } from "@/lib/mockData";
@@ -19,29 +19,83 @@ import {
   supabase,
   isSupabaseConfigured,
   fetchApplicationsFromSupabase,
+  fetchTriageEmailsFromSupabase,
+  fetchNotificationsFromSupabase,
   updateApplicationStatusInSupabase,
   upsertApplicationInSupabase,
   deleteApplicationFromSupabase,
+  markNotificationAsReadInSupabase,
+  markAllNotificationsAsReadInSupabase,
+  getCurrentUser,
+  signOutUser,
+  onAuthStateChange,
+  approveTriageEmailInSupabase,
+  dismissTriageEmailInSupabase,
 } from "@/lib/supabase";
+import { toast } from "sonner";
+import { playNotificationSound } from "@/lib/notificationSound";
+import { showDesktopNotification } from "@/lib/desktopNotification";
 import { LinearSidebar } from "@/components/LinearSidebar";
 import { LinearHeader } from "@/components/LinearHeader";
 import { KanbanBoard } from "@/components/KanbanBoard";
 import { ApplicationDetailModal } from "@/components/ApplicationDetailModal";
 import { ApplicationFormModal } from "@/components/ApplicationFormModal";
+import { AuthModal } from "@/components/AuthModal";
 import { InterviewCalendar } from "@/components/views/InterviewCalendar";
-import { JobWishlist } from "@/components/views/JobWishlist";
 import { ApplicationAnalytics } from "@/components/views/ApplicationAnalytics";
 import { AITriageInbox } from "@/components/views/AITriageInbox";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 
 const LOCAL_STORAGE_KEY = "job_tracker_applications_v1";
+const LOCAL_STORAGE_APPROVED_KEY = "job_tracker_approved_emails_v1";
+const LOCAL_STORAGE_DISMISSED_KEY = "job_tracker_dismissed_emails_v1";
+const LOCAL_STORAGE_NOTIFICATIONS_KEY = "job_tracker_notifications_v1";
+
+const INITIAL_NOTIFICATIONS: AppNotification[] = [
+  {
+    id: "notif-1",
+    application_id: "app-1",
+    title: "🎉 Job Offer Received!",
+    message: "Stripe extended an offer for Staff Frontend Engineer with compensation details.",
+    status: "offer",
+    company: "Stripe",
+    role: "Staff Frontend Engineer",
+    sender: "recruiter.sarah@stripe.com",
+    is_read: false,
+    created_at: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+  },
+  {
+    id: "notif-2",
+    application_id: "app-2",
+    title: "🎯 Interview Invitation!",
+    message: "Linear invited you to a Technical Architecture Screen next Tuesday.",
+    status: "interview",
+    company: "Linear",
+    role: "Product Designer & Engineer",
+    sender: "talent@linear.app",
+    is_read: false,
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+  },
+  {
+    id: "notif-3",
+    application_id: "app-3",
+    title: "💬 Recruiter Reply",
+    message: "Vercel recruiter sent a follow-up question regarding your availability.",
+    status: "reply",
+    company: "Vercel",
+    role: "Full Stack Engineer",
+    sender: "careers@vercel.com",
+    is_read: true,
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+  },
+];
 
 export default function DashboardPage() {
   const [applications, setApplications] = useState<JobApplication[]>(INITIAL_MOCK_APPLICATIONS);
   const [activeView, setActiveView] = useState<ActiveView>("board");
-  const [wishlistJobs, setWishlistJobs] = useState<WishlistJob[]>(INITIAL_WISHLIST_JOBS);
   const [interviewEvents, setInterviewEvents] = useState<InterviewEvent[]>(INITIAL_INTERVIEW_EVENTS);
   const [triageEmails, setTriageEmails] = useState<TriageEmail[]>(INITIAL_TRIAGE_EMAILS);
+  const [notifications, setNotifications] = useState<AppNotification[]>(INITIAL_NOTIFICATIONS);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoaded, setIsLoaded] = useState(true);
@@ -49,7 +103,8 @@ export default function DashboardPage() {
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
   const [activeStatusFilter, setActiveStatusFilter] = useState<ApplicationStatus | "all">("all");
 
-  // Modal states
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState<JobApplication | null>(null);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [editingApplication, setEditingApplication] = useState<JobApplication | null>(null);
@@ -60,18 +115,82 @@ export default function DashboardPage() {
   const [calendarAddEventTrigger, setCalendarAddEventTrigger] = useState(0);
   const [triageFilter, setTriageFilter] = useState<"pending" | "approved">("pending");
 
+  // Approval & Dismissed storage helpers
+  const getStoredApprovedIds = useCallback((): Set<string> => {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const raw = localStorage.getItem(LOCAL_STORAGE_APPROVED_KEY);
+      return raw ? new Set(JSON.parse(raw)) : new Set();
+    } catch {
+      return new Set();
+    }
+  }, []);
+
+  const getStoredDismissedIds = useCallback((): Set<string> => {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const raw = localStorage.getItem(LOCAL_STORAGE_DISMISSED_KEY);
+      return raw ? new Set(JSON.parse(raw)) : new Set();
+    } catch {
+      return new Set();
+    }
+  }, []);
+
   // 1. Initial Load & Data Fetching with timeout safety
   const loadData = useCallback(async () => {
     setIsRefreshing(true);
     try {
+      const approvedIds = getStoredApprovedIds();
+      const dismissedIds = getStoredDismissedIds();
+
       if (isSupabaseConfigured) {
-        const fetchPromise = fetchApplicationsFromSupabase();
-        const timeoutPromise = new Promise<JobApplication[]>((_, reject) =>
-          setTimeout(() => reject(new Error("Supabase fetch timeout")), 4000)
+        const fetchAppsPromise = fetchApplicationsFromSupabase();
+        const fetchEmailsPromise = fetchTriageEmailsFromSupabase();
+        const fetchNotifsPromise = fetchNotificationsFromSupabase();
+        const timeoutPromise = new Promise<any[]>((_, reject) =>
+          setTimeout(() => reject(new Error("Supabase fetch timeout")), 5000)
         );
-        const data = await Promise.race([fetchPromise, timeoutPromise]);
-        if (data && data.length > 0) {
-          setApplications(data);
+
+        const [appsResult, emailsResult, notifsResult] = await Promise.allSettled([
+          Promise.race([fetchAppsPromise, timeoutPromise]),
+          Promise.race([fetchEmailsPromise, timeoutPromise]),
+          Promise.race([fetchNotifsPromise, timeoutPromise]),
+        ]);
+
+        if (appsResult.status === "fulfilled" && Array.isArray(appsResult.value) && appsResult.value.length > 0) {
+          setApplications(appsResult.value);
+        }
+
+        if (emailsResult.status === "fulfilled" && Array.isArray(emailsResult.value)) {
+          const supabaseEmails = emailsResult.value as TriageEmail[];
+
+          // Format real Supabase emails
+          const realEmailsFormatted = supabaseEmails.map((em) => ({
+            ...em,
+            is_approved: approvedIds.has(em.id),
+          }));
+
+          // Format sample mock emails
+          const sampleMockEmails = INITIAL_TRIAGE_EMAILS.map((em) => ({
+            ...em,
+            is_approved: approvedIds.has(em.id),
+          }));
+
+          // Merge: Real Supabase emails first, sample mock emails appended (avoid duplicates)
+          const combined = [...realEmailsFormatted];
+          sampleMockEmails.forEach((mock) => {
+            if (!combined.some((e) => e.id === mock.id || (e.thread_id && e.thread_id === mock.thread_id))) {
+              combined.push(mock);
+            }
+          });
+
+          // Filter out dismissed
+          const activeEmails = combined.filter((e) => !dismissedIds.has(e.id));
+          setTriageEmails(activeEmails);
+        }
+
+        if (notifsResult.status === "fulfilled" && Array.isArray(notifsResult.value) && notifsResult.value.length > 0) {
+          setNotifications(notifsResult.value);
         }
       } else {
         const saved = typeof window !== "undefined" ? localStorage.getItem(LOCAL_STORAGE_KEY) : null;
@@ -85,6 +204,26 @@ export default function DashboardPage() {
             // Keep current mock data
           }
         }
+
+        const savedNotifs = typeof window !== "undefined" ? localStorage.getItem(LOCAL_STORAGE_NOTIFICATIONS_KEY) : null;
+        if (savedNotifs) {
+          try {
+            const parsedNotifs = JSON.parse(savedNotifs);
+            if (Array.isArray(parsedNotifs) && parsedNotifs.length > 0) {
+              setNotifications(parsedNotifs);
+            }
+          } catch {}
+        }
+
+        // Apply local approval & dismissal in mock mode
+        setTriageEmails((prev) =>
+          prev
+            .filter((e) => !dismissedIds.has(e.id))
+            .map((e) => ({
+              ...e,
+              is_approved: approvedIds.has(e.id) ? true : e.is_approved,
+            }))
+        );
       }
     } catch (err) {
       console.warn("Using current applications data:", err);
@@ -92,10 +231,20 @@ export default function DashboardPage() {
       setIsLoaded(true);
       setIsRefreshing(false);
     }
-  }, []);
+  }, [getStoredApprovedIds, getStoredDismissedIds]);
 
   useEffect(() => {
     loadData();
+    if (isSupabaseConfigured) {
+      getCurrentUser().then(setUser);
+      const { data: { subscription } } = onAuthStateChange((_event, session) => {
+        setUser(session?.user ?? null);
+        loadData();
+      });
+      return () => {
+        subscription?.unsubscribe();
+      };
+    }
   }, [loadData]);
 
   // Persist mock data changes to localStorage in demo mode
@@ -104,6 +253,53 @@ export default function DashboardPage() {
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(applications));
     }
   }, [applications, isLoaded]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured && isLoaded && typeof window !== "undefined") {
+      localStorage.setItem(LOCAL_STORAGE_NOTIFICATIONS_KEY, JSON.stringify(notifications));
+    }
+  }, [notifications, isLoaded]);
+
+  // Realtime notification receiver & dispatcher
+  const handleIncomingNotification = useCallback(
+    (notif: AppNotification) => {
+      setNotifications((prev) => [notif, ...prev.filter((n) => n.id !== notif.id)]);
+
+      // 1. Audio chime
+      playNotificationSound(
+        notif.status === "offer" || notif.status === "interview" ? "offer" : "default"
+      );
+
+      // 2. Sonner toast popup
+      toast(notif.title, {
+        description: `${notif.company} • ${notif.role}: ${notif.message}`,
+        action: {
+          label: "View in Board",
+          onClick: () => {
+            setActiveView("board");
+            if (notif.application_id) {
+              setApplications((currentApps) => {
+                const app = currentApps.find((a) => a.id === notif.application_id);
+                if (app) setSelectedApplication(app);
+                return currentApps;
+              });
+            }
+          },
+        },
+        duration: 7000,
+      });
+
+      // 3. Browser desktop push notification
+      showDesktopNotification(notif.title, {
+        body: `${notif.company} • ${notif.role}\n${notif.message}`,
+        onClick: () => {
+          window.focus();
+          setActiveView("board");
+        },
+      });
+    },
+    []
+  );
 
   // 2. Setup Supabase Realtime Subscription
   useEffect(() => {
@@ -114,26 +310,115 @@ export default function DashboardPage() {
       .on(
         "postgres_changes",
         {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+        },
+        (payload) => {
+          console.log("Realtime notification event:", payload);
+          const newNotif = payload.new as AppNotification;
+          if (newNotif && newNotif.id) {
+            handleIncomingNotification(newNotif);
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
           event: "*",
           schema: "public",
           table: "applications",
         },
         (payload) => {
-          console.log("Realtime event received:", payload);
+          console.log("Realtime application event:", payload);
           if (payload.eventType === "INSERT") {
             const newApp = payload.new as JobApplication;
             setApplications((prev) => {
               if (prev.some((a) => a.id === newApp.id)) return prev;
               return [newApp, ...prev];
             });
+
+            // Also add to AI Triage Inbox as pending item
+            const newInboxItem: TriageEmail = {
+              id: newApp.id,
+              application_id: newApp.id,
+              thread_id: newApp.thread_id || "",
+              company: newApp.company,
+              role: newApp.role,
+              sender: newApp.sender || "Unknown Sender",
+              subject: newApp.subject || "Application Update",
+              date: newApp.latest_update_date || newApp.applied_date || new Date().toISOString(),
+              detected_status: newApp.status,
+              confidence_score: 0.96,
+              ai_rationale: newApp.summary
+                ? `Gemini AI: "${newApp.summary}"`
+                : "Real-time update received from n8n automation.",
+              summary: newApp.summary || "Application status updated.",
+              is_approved: false,
+            };
+            setTriageEmails((prev) => [newInboxItem, ...prev.filter((e) => e.id !== newInboxItem.id)]);
           } else if (payload.eventType === "UPDATE") {
             const updatedApp = payload.new as JobApplication;
             setApplications((prev) =>
               prev.map((app) => (app.id === updatedApp.id ? { ...app, ...updatedApp } : app))
             );
+            // Also update any matching triage email
+            setTriageEmails((prev) =>
+              prev.map((em) =>
+                em.application_id === updatedApp.id || em.id === updatedApp.id
+                  ? {
+                      ...em,
+                      company: updatedApp.company,
+                      role: updatedApp.role,
+                      detected_status: updatedApp.status,
+                      summary: updatedApp.summary || em.summary,
+                    }
+                  : em
+              )
+            );
           } else if (payload.eventType === "DELETE") {
             const deletedId = (payload.old as { id: string }).id;
             setApplications((prev) => prev.filter((app) => app.id !== deletedId));
+            setTriageEmails((prev) =>
+              prev.filter((em) => em.id !== deletedId && em.application_id !== deletedId)
+            );
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "application_updates",
+        },
+        (payload) => {
+          console.log("Realtime application update event:", payload);
+          const update = payload.new as any;
+          if (update && update.id) {
+            setApplications((currentApps) => {
+              const parentApp = currentApps.find((a) => a.id === update.application_id);
+              const newInboxItem: TriageEmail = {
+                id: update.id,
+                application_id: update.application_id,
+                thread_id: update.thread_id || parentApp?.thread_id || "",
+                company: parentApp?.company || "Company",
+                role: parentApp?.role || "Role",
+                sender: update.sender || "Unknown Sender",
+                subject: update.subject || "Application Update",
+                date: update.email_date || new Date().toISOString(),
+                detected_status: update.status || "applied",
+                confidence_score: 0.96,
+                ai_rationale: update.summary
+                  ? `Gemini AI: "${update.summary}"`
+                  : "Real-time email update received from n8n.",
+                summary: update.summary || "New email update logged.",
+                is_approved: false,
+              };
+
+              setTriageEmails((prev) => [newInboxItem, ...prev.filter((e) => e.id !== newInboxItem.id)]);
+              return currentApps;
+            });
           }
         }
       )
@@ -334,48 +619,11 @@ export default function DashboardPage() {
     return result;
   }, [applications, searchQuery, activeStatusFilter]);
 
-  // 8. Wishlist / Backlog Handlers
-  const handleApplyAndMoveToBoard = (job: WishlistJob) => {
-    const newApp: JobApplication = {
-      id: `app-${Date.now()}`,
-      company: job.company,
-      role: job.role,
-      status: "applied",
-      applied_date: new Date().toISOString(),
-      latest_update_date: new Date().toISOString(),
-      summary: job.notes || `Applied via ${job.url || "direct posting"}. Target: ${job.salary_range || "Competitive"}`,
-      history_log: [
-        {
-          date: new Date().toISOString(),
-          status: "applied",
-          summary: "Moved from Backlog Wishlist to Active Application.",
-        },
-      ],
-    };
-    handleFormSubmit(newApp);
-    setWishlistJobs((prev) => prev.filter((w) => w.id !== job.id));
-    setActiveView("board");
-  };
 
-  const handleAddWishlistJob = (jobData: Partial<WishlistJob>) => {
-    const newWishlist: WishlistJob = {
-      id: `wish-${Date.now()}`,
-      company: jobData.company || "Untitled",
-      role: jobData.role || "Role",
-      location: jobData.location,
-      salary_range: jobData.salary_range,
-      url: jobData.url,
-      notes: jobData.notes,
-      date_added: new Date().toISOString(),
-    };
-    setWishlistJobs((prev) => [newWishlist, ...prev]);
-  };
 
-  const handleDeleteWishlistJob = (id: string) => {
-    setWishlistJobs((prev) => prev.filter((w) => w.id !== id));
-  };
 
   // 9. Interview Calendar Handlers
+  // 8. Interview Calendar Handlers
   const handleAddInterviewEvent = (eventData: Partial<InterviewEvent>) => {
     const newEvent: InterviewEvent = {
       id: `int-${Date.now()}`,
@@ -391,17 +639,30 @@ export default function DashboardPage() {
   };
 
   // 10. AI Triage Inbox Handlers
-  const handleApproveTriageEmail = (email: TriageEmail, overrideStatus?: ApplicationStatus) => {
-    const statusToUse = overrideStatus || email.detected_status;
+  const handleApproveTriageEmail = async (email: TriageEmail, overrideStatus?: ApplicationStatus) => {
+    const statusToUse: ApplicationStatus =
+      overrideStatus || (email.detected_status === "unparsed" ? "applied" : (email.detected_status as ApplicationStatus));
+
+    if (isSupabaseConfigured) {
+      try {
+        await approveTriageEmailInSupabase(email, statusToUse);
+      } catch (err) {
+        console.warn("Could not sync triage approval to Supabase:", err);
+      }
+    }
+
     const existing = applications.find(
       (a) =>
-        a.thread_id === email.thread_id ||
+        (email.application_id && a.id === email.application_id) ||
+        (email.thread_id && a.thread_id === email.thread_id) ||
         (a.company.toLowerCase() === email.company.toLowerCase() &&
           a.role.toLowerCase() === email.role.toLowerCase())
     );
 
     if (existing) {
-      handleStatusChange(existing.id, statusToUse);
+      if (existing.status !== statusToUse) {
+        handleStatusChange(existing.id, statusToUse);
+      }
     } else {
       const newApp: JobApplication = {
         id: `app-${Date.now()}`,
@@ -427,19 +688,143 @@ export default function DashboardPage() {
       handleFormSubmit(newApp);
     }
 
+    // Persist approval to localStorage
+    try {
+      const approvedIds = getStoredApprovedIds();
+      approvedIds.add(email.id);
+      localStorage.setItem(LOCAL_STORAGE_APPROVED_KEY, JSON.stringify(Array.from(approvedIds)));
+    } catch (err) {
+      console.error("Failed to save approved email ID:", err);
+    }
+
     setTriageEmails((prev) =>
-      prev.map((e) => (e.id === email.id ? { ...e, is_approved: true } : e))
+      prev.map((e) => (e.id === email.id ? { ...e, is_approved: true, detected_status: statusToUse } : e))
     );
+    toast.success(`Approved update for ${email.company}`);
   };
 
-  const handleDismissTriageEmail = (id: string) => {
+  const handleDismissTriageEmail = async (id: string) => {
+    if (isSupabaseConfigured) {
+      try {
+        await dismissTriageEmailInSupabase(id);
+      } catch (err) {
+        console.warn("Could not sync dismissal to Supabase:", err);
+      }
+    }
+
+    try {
+      const dismissedIds = getStoredDismissedIds();
+      dismissedIds.add(id);
+      localStorage.setItem(LOCAL_STORAGE_DISMISSED_KEY, JSON.stringify(Array.from(dismissedIds)));
+    } catch (err) {
+      console.error("Failed to save dismissed email ID:", err);
+    }
+
     setTriageEmails((prev) => prev.filter((e) => e.id !== id));
+    toast.info("Triage email dismissed");
   };
 
   const handleBatchApproveTriageEmails = (emailsToApprove: TriageEmail[]) => {
     emailsToApprove.forEach((email) => {
       handleApproveTriageEmail(email);
     });
+  };
+
+  // 11. Notification Center Handlers
+  const handleMarkNotificationAsRead = async (id: string) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
+    );
+    if (isSupabaseConfigured) {
+      await markNotificationAsReadInSupabase(id);
+    }
+  };
+
+  const handleMarkAllNotificationsAsRead = async () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    if (isSupabaseConfigured) {
+      await markAllNotificationsAsReadInSupabase();
+    }
+  };
+
+  const handleClearAllNotifications = () => {
+    setNotifications([]);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(LOCAL_STORAGE_NOTIFICATIONS_KEY);
+    }
+  };
+
+  const handleSelectNotification = (notif: AppNotification) => {
+    if (notif.application_id) {
+      const app = applications.find((a) => a.id === notif.application_id);
+      if (app) {
+        setSelectedApplication(app);
+        setActiveView("board");
+        return;
+      }
+    }
+    if (notif.status === "interview") {
+      setActiveView("calendar");
+    } else {
+      setActiveView("inbox");
+    }
+  };
+
+  const handleTestNotification = () => {
+    const testSamples = [
+      {
+        company: "Stripe",
+        role: "Staff Frontend Engineer",
+        status: "offer" as ApplicationStatus,
+        title: "🎉 Job Offer Received!",
+        message: "Stripe extended an official job offer! Review compensation package.",
+        sender: "recruiter.sarah@stripe.com",
+      },
+      {
+        company: "Linear",
+        role: "Product Engineer",
+        status: "interview" as ApplicationStatus,
+        title: "🎯 Interview Invitation!",
+        message: "Linear invited you to a System Architecture Round next Wednesday.",
+        sender: "talent@linear.app",
+      },
+      {
+        company: "Google",
+        role: "Senior Software Engineer",
+        status: "reply" as ApplicationStatus,
+        title: "💬 Recruiter Reply",
+        message: "Recruiter reviewed your portfolio and requested 15-minute phone sync.",
+        sender: "google-talent@google.com",
+      },
+      {
+        company: "Vercel",
+        role: "Next.js Framework Engineer",
+        status: "applied" as ApplicationStatus,
+        title: "📝 Application Submitted",
+        message: "Application confirmed by Vercel applicant tracking system.",
+        sender: "jobs@vercel.com",
+      },
+    ];
+
+    const random = testSamples[Math.floor(Math.random() * testSamples.length)];
+    const matchingApp = applications.find(
+      (a) => a.company.toLowerCase() === random.company.toLowerCase()
+    );
+
+    const newNotif: AppNotification = {
+      id: `notif-${Date.now()}`,
+      application_id: matchingApp?.id || null,
+      title: random.title,
+      message: random.message,
+      status: random.status,
+      company: random.company,
+      role: random.role,
+      sender: random.sender,
+      is_read: false,
+      created_at: new Date().toISOString(),
+    };
+
+    handleIncomingNotification(newNotif);
   };
 
   return (
@@ -453,13 +838,23 @@ export default function DashboardPage() {
         statusCounts={statusCounts}
         totalCount={applications.length}
         pendingTriageCount={triageEmails.filter((e) => !e.is_approved).length}
-        wishlistCount={wishlistJobs.length}
         upcomingInterviewsCount={interviewEvents.length}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         onOpenAddModal={() => handleOpenAddModal("applied")}
         isRealtimeConnected={isRealtimeConnected}
         isDemoMode={!isSupabaseConfigured}
+        user={user}
+        onOpenAuthModal={() => setIsAuthModalOpen(true)}
+        onSignOut={async () => {
+          try {
+            await signOutUser();
+            setUser(null);
+            toast.success("Signed out successfully");
+          } catch (err: any) {
+            toast.error(err?.message || "Failed to sign out");
+          }
+        }}
       />
 
       {/* Main Canvas with SidebarInset */}
@@ -480,6 +875,12 @@ export default function DashboardPage() {
             onTriageFilterChange={setTriageFilter}
             pendingTriageCount={triageEmails.filter((e) => !e.is_approved).length}
             approvedTriageCount={triageEmails.filter((e) => e.is_approved).length}
+            notifications={notifications}
+            onMarkNotificationAsRead={handleMarkNotificationAsRead}
+            onMarkAllNotificationsAsRead={handleMarkAllNotificationsAsRead}
+            onClearAllNotifications={handleClearAllNotifications}
+            onSelectNotification={handleSelectNotification}
+            onTestNotification={handleTestNotification}
           />
 
           {/* View Container */}
@@ -509,22 +910,19 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {activeView === "backlog" && (
-            <div className="flex-1 min-h-0 w-full overflow-hidden bg-card">
-              <JobWishlist
-                wishlist={wishlistJobs}
-                onApplyAndMoveToBoard={handleApplyAndMoveToBoard}
-                onAddWishlistJob={handleAddWishlistJob}
-                onDeleteWishlistJob={handleDeleteWishlistJob}
-                isAdding={isWishlistAdding}
-                setIsAdding={setIsWishlistAdding}
-              />
-            </div>
-          )}
 
           {activeView === "analytics" && (
             <div className="flex-1 min-h-0 w-full overflow-hidden bg-card">
-              <ApplicationAnalytics applications={applications} />
+              <ApplicationAnalytics
+                applications={applications}
+                triageEmails={triageEmails}
+                onQuickApply={() => {
+                  setDefaultStatusForNew("applied");
+                  setEditingApplication(null);
+                  setIsFormModalOpen(true);
+                }}
+                onNavigateView={setActiveView}
+              />
             </div>
           )}
 
@@ -562,6 +960,15 @@ export default function DashboardPage() {
         onSubmit={handleFormSubmit}
         initialData={editingApplication}
         defaultStatus={defaultStatusForNew}
+      />
+
+      {/* Auth & Security Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        user={user}
+        isDemoMode={!isSupabaseConfigured}
+        onRefreshUser={loadData}
       />
     </SidebarProvider>
   );

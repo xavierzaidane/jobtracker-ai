@@ -1,4 +1,4 @@
-import { JobApplication, WishlistJob, InterviewEvent, TriageEmail } from "@/types/application";
+import { JobApplication, InterviewEvent, TriageEmail } from "@/types/application";
 
 export const INITIAL_MOCK_APPLICATIONS: JobApplication[] = [
   {
@@ -150,48 +150,6 @@ export const INITIAL_MOCK_APPLICATIONS: JobApplication[] = [
   },
 ];
 
-export const INITIAL_WISHLIST_JOBS: WishlistJob[] = [
-  {
-    id: "wish-1",
-    company: "OpenAI",
-    role: "Full Stack Engineer - Systems",
-    location: "San Francisco, CA (Hybrid)",
-    salary_range: "$220,000 - $310,000",
-    url: "https://openai.com/careers/full-stack-engineer",
-    notes: "Requires deep experience with Next.js, WebSockets, and real-time streaming interfaces.",
-    date_added: new Date(Date.now() - 2 * 86400000).toISOString(),
-  },
-  {
-    id: "wish-2",
-    company: "Figma",
-    role: "Frontend Engineer - Canvas & Collaboration",
-    location: "Remote (US)",
-    salary_range: "$190,000 - $260,000",
-    url: "https://figma.com/careers",
-    notes: "Heavy WebGL / WebAssembly & real-time collaborative state synchronization.",
-    date_added: new Date(Date.now() - 4 * 86400000).toISOString(),
-  },
-  {
-    id: "wish-3",
-    company: "Vercel",
-    role: "Product Engineer - AI SDK & DX",
-    location: "Remote (Global)",
-    salary_range: "$180,000 - $240,000",
-    url: "https://vercel.com/careers",
-    notes: "Passionate about AI interfaces, RSC, Next.js App Router, and DX benchmarking.",
-    date_added: new Date(Date.now() - 6 * 86400000).toISOString(),
-  },
-  {
-    id: "wish-4",
-    company: "Linear",
-    role: "Core Application Engineer",
-    location: "Remote (EU/US)",
-    salary_range: "$190,000 - $250,000",
-    url: "https://linear.app/careers",
-    notes: "Focus on keyboard shortcuts, offline-first sync engine, and 60fps UX.",
-    date_added: new Date(Date.now() - 8 * 86400000).toISOString(),
-  },
-];
 
 export const INITIAL_INTERVIEW_EVENTS: InterviewEvent[] = [
   {

@@ -7,11 +7,11 @@ import {
   Share2,
   Download,
   Link,
-  Sparkles,
 } from "lucide-react";
-import { ApplicationStatus, ActiveView } from "@/types/application";
+import { ApplicationStatus, ActiveView, AppNotification } from "@/types/application";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { NotificationCenter } from "@/components/NotificationCenter";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,6 +33,12 @@ interface LinearHeaderProps {
   onTriageFilterChange?: (filter: "pending" | "approved") => void;
   pendingTriageCount?: number;
   approvedTriageCount?: number;
+  notifications?: AppNotification[];
+  onMarkNotificationAsRead?: (id: string) => void;
+  onMarkAllNotificationsAsRead?: () => void;
+  onClearAllNotifications?: () => void;
+  onSelectNotification?: (notification: AppNotification) => void;
+  onTestNotification?: () => void;
 }
 
 export const LinearHeader: React.FC<LinearHeaderProps> = ({
@@ -49,10 +55,15 @@ export const LinearHeader: React.FC<LinearHeaderProps> = ({
   onTriageFilterChange,
   pendingTriageCount = 0,
   approvedTriageCount = 0,
+  notifications = [],
+  onMarkNotificationAsRead,
+  onMarkAllNotificationsAsRead,
+  onClearAllNotifications,
+  onSelectNotification,
+  onTestNotification,
 }) => {
   const getBreadcrumbLabel = () => {
     if (activeView === "calendar") return "Interview Calendar";
-    if (activeView === "backlog") return "Backlog & Wishlist";
     if (activeView === "analytics") return "Analytics & Funnel";
     if (activeView === "inbox") return "AI Triage Inbox";
 
@@ -119,6 +130,16 @@ export const LinearHeader: React.FC<LinearHeaderProps> = ({
 
         <div className="h-4 w-px bg-border mx-0.5 hidden sm:block"></div>
 
+        {/* Real-time Notification Center */}
+        <NotificationCenter
+          notifications={notifications}
+          onMarkAsRead={onMarkNotificationAsRead || (() => {})}
+          onMarkAllAsRead={onMarkAllNotificationsAsRead || (() => {})}
+          onClearAll={onClearAllNotifications || (() => {})}
+          onSelectNotification={onSelectNotification}
+          onTestNotification={onTestNotification}
+        />
+
         <Button
           variant="ghost"
           size="icon"
@@ -142,17 +163,6 @@ export const LinearHeader: React.FC<LinearHeaderProps> = ({
           </Button>
         )}
 
-        {activeView === "backlog" && (
-          <Button
-            size="sm"
-            onClick={onOpenAddWishlist}
-            variant={isWishlistAdding ? "secondary" : "default"}
-            className="h-7 text-[12px] px-3 font-semibold gap-1 active:scale-95 shadow-xs"
-          >
-            <Plus className={`w-3.5 h-3.5 ${isWishlistAdding ? "rotate-45 transition-transform" : ""}`} />
-            <span>{isWishlistAdding ? "Close Form" : "Save Opportunity"}</span>
-          </Button>
-        )}
 
         {activeView === "calendar" && (
           <Button
@@ -167,20 +177,25 @@ export const LinearHeader: React.FC<LinearHeaderProps> = ({
 
         {activeView === "inbox" && (
           <div className="flex items-center gap-2">
-            {/* Live Indicator */}
-            <span className="hidden md:inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-              <Sparkles className="w-3 h-3" />
-              <span>n8n Live</span>
+            {/* Live Indicator with n8n logo */}
+            <span className="hidden md:inline-flex items-center gap-1.5 text-[11px] font-medium text-foreground bg-muted/60 px-2.5 py-1 rounded-lg border border-border ">
+              <img
+                src="/n8n-color.png"
+                alt="n8n"
+                className="w-4 h-4 object-contain shrink-0"
+              />
+              <span>Live</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
             </span>
 
             {/* Segmented Filter Pills */}
-            <div className="flex items-center gap-0.5 bg-secondary p-0.5 rounded-lg text-xs">
+            <div className="flex items-center gap-0.5 bg-muted p-0.5 rounded-lg text-xs">
               <button
                 type="button"
                 onClick={() => onTriageFilterChange?.("pending")}
                 className={`px-2.5 py-1 rounded-md transition font-medium text-[11px] ${
                   triageFilter === "pending"
-                    ? "bg-card text-foreground shadow-2xs font-semibold"
+                    ? "bg-input dark:bg-card text-foreground shadow-2xs font-normal"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -191,7 +206,7 @@ export const LinearHeader: React.FC<LinearHeaderProps> = ({
                 onClick={() => onTriageFilterChange?.("approved")}
                 className={`px-2.5 py-1 rounded-md transition font-medium text-[11px] ${
                   triageFilter === "approved"
-                    ? "bg-card text-foreground shadow-2xs font-semibold"
+                    ? "bg-input dark:bg-card text-foreground shadow-2xs font-normal"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >

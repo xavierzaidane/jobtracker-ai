@@ -1,44 +1,10 @@
-import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
+"use client";
 
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+import React, { useState, useEffect, useMemo } from "react";
+import { getCompanyColor } from "@/components/views/inbox/utils";
 
-export function formatDate(dateString?: string | null): string {
-  if (!dateString) return "N/A";
-  try {
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return dateString;
-    return new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    }).format(date);
-  } catch {
-    return dateString;
-  }
-}
-
-export function formatRelativeTime(dateString?: string | null): string {
-  if (!dateString) return "";
-  try {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-    if (diffInSeconds < 60) return "Just now";
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
-    return formatDate(dateString);
-  } catch {
-    return "";
-  }
-}
-
-// Lightweight pure JS MD5 implementation for Gravatar & avatar hash resolution
-export function md5(string: string): string {
+// Lightweight, pure JavaScript MD5 implementation (zero dependencies, fast & synchronous)
+function md5(string: string): string {
   function rotateLeft(lValue: number, iShiftBits: number) {
     return (lValue << iShiftBits) | (lValue >>> (32 - iShiftBits));
   }
@@ -186,21 +152,146 @@ export function md5(string: string): string {
   return temp.toLowerCase();
 }
 
-/**
- * Resolves a dynamic user avatar URL from the actual email address
- * Supports OAuth metadata picture, Unavatar.io (Google, GitHub, Gravatar), and direct Gravatar hash.
- */
-export function getUserAvatarUrl(email?: string | null, metadataAvatar?: string | null): string {
-  if (metadataAvatar && metadataAvatar.trim().length > 0) {
-    return metadataAvatar;
-  }
-  if (!email || !email.trim()) {
-    return "";
-  }
-  const cleanEmail = email.trim().toLowerCase();
-  const hash = md5(cleanEmail);
-  // Unavatar queries Gravatar, Google, GitHub, Substack, etc. with direct Gravatar fallback
-  return `https://unavatar.io/${encodeURIComponent(cleanEmail)}?fallback=https%3A%2F%2Fwww.gravatar.com%2Favatar%2F${hash}%3Fd%3D404`;
+// Known free webmail domains to skip when resolving company logos
+const GENERIC_EMAIL_DOMAINS = new Set([
+  "gmail.com",
+  "googlemail.com",
+  "yahoo.com",
+  "hotmail.com",
+  "outlook.com",
+  "live.com",
+  "icloud.com",
+  "me.com",
+  "mac.com",
+  "proton.me",
+  "protonmail.com",
+  "aol.com",
+  "mail.com",
+  "zoho.com",
+]);
+
+export interface SenderAvatarProps {
+  sender?: string | null;
+  company: string;
+  size?: "sm" | "md" | "lg";
+  className?: string;
 }
 
+export const SenderAvatar: React.FC<SenderAvatarProps> = ({
+  sender,
+  company,
+  size = "md",
+  className = "",
+}) => {
+  // 1. Parse clean email from formats like "Sarah Jenkins <recruiter@company.com>"
+  const cleanEmail = useMemo(() => {
+    if (!sender) return null;
+    const match = sender.match(/<([^>]+)>/) || sender.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/);
+    return match ? match[1] || match[0] : null;
+  }, [sender]);
+
+  // 2. Extract company domain for logo fallback (if not generic webmail)
+  const companyDomain = useMemo(() => {
+    if (!cleanEmail) return null;
+    const parts = cleanEmail.split("@");
+    if (parts.length < 2) return null;
+    const domain = parts[1].toLowerCase().trim();
+    return GENERIC_EMAIL_DOMAINS.has(domain) ? null : domain;
+  }, [cleanEmail]);
+
+  // 3. Size specifications
+  const sizeClasses = {
+    sm: "h-6 w-6 text-[10px]",
+    md: "h-9 w-9 text-xs",
+    lg: "h-10 w-10 text-sm",
+  }[size];
+
+  const pixelSize = {
+    sm: 48,
+    md: 80,
+    lg: 128,
+  }[size];
+
+  // 4. Candidate URLs
+  const gravatarUrl = useMemo(() => {
+    if (!cleanEmail) return null;
+    const hash = md5(cleanEmail.trim().toLowerCase());
+    return `https://www.gravatar.com/avatar/${hash}?d=404&s=${pixelSize}`;
+  }, [cleanEmail, pixelSize]);
+
+  const companyLogoUrl = useMemo(() => {
+    if (!companyDomain) return null;
+    return `https://www.google.com/s2/favicons?domain=${companyDomain}&sz=${pixelSize}`;
+  }, [companyDomain, pixelSize]);
+
+  // 5. Fallback Stage: 'gravatar' -> 'company' -> 'initials'
+  const [stage, setStage] = useState<"gravatar" | "company" | "initials">(() => {
+    if (gravatarUrl) return "gravatar";
+    if (companyLogoUrl) return "company";
+    return "initials";
+  });
+
+  // Reset stage if sender or company changes
+  useEffect(() => {
+    if (gravatarUrl) {
+      setStage("gravatar");
+    } else if (companyLogoUrl) {
+      setStage("company");
+    } else {
+      setStage("initials");
+    }
+  }, [gravatarUrl, companyLogoUrl]);
+
+  const handleImageError = () => {
+    if (stage === "gravatar") {
+      if (companyLogoUrl) {
+        setStage("company");
+      } else {
+        setStage("initials");
+      }
+    } else if (stage === "company") {
+      setStage("initials");
+    }
+  };
+
+  const initials = (company || "Job").slice(0, 2).toUpperCase();
+  const companyColor = getCompanyColor(company || "Company");
+
+  return (
+    <div
+      className={`rounded-full overflow-hidden shrink-0 border border-border/70 flex items-center justify-center select-none relative ${sizeClasses} ${className}`}
+      title={sender || company}
+    >
+      {stage === "gravatar" && gravatarUrl && (
+        <img
+          src={gravatarUrl}
+          alt={sender || company}
+          className="w-full h-full object-cover"
+          onError={handleImageError}
+          loading="lazy"
+        />
+      )}
+
+      {stage === "company" && companyLogoUrl && (
+        <div className="w-full h-full p-1 bg-background flex items-center justify-center">
+          <img
+            src={companyLogoUrl}
+            alt={company}
+            className="w-full h-full object-contain"
+            onError={handleImageError}
+            loading="lazy"
+          />
+        </div>
+      )}
+
+      {stage === "initials" && (
+        <div
+          className={`w-full h-full flex items-center justify-center font-semibold uppercase ${companyColor}`}
+        >
+          {initials}
+        </div>
+      )}
+    </div>
+  );
+};
 

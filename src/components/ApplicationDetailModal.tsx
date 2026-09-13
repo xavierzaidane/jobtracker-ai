@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { SenderAvatar } from "@/components/ui/sender-avatar";
 
 interface ApplicationDetailModalProps {
   application: JobApplication | null;
@@ -54,9 +55,11 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
         {/* Header */}
         <DialogHeader className="p-5 border-b border-border bg-muted/40 flex flex-row items-center justify-between space-y-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary text-primary-foreground flex items-center justify-center font-semibold text-sm ">
-              {application.company.slice(0, 2).toUpperCase()}
-            </div>
+            <SenderAvatar
+              sender={application.sender}
+              company={application.company}
+              size="lg"
+            />
             <div>
               <DialogTitle className="text-base font-semibold text-foreground">
                 {application.company}
@@ -156,12 +159,19 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
               <p className="font-medium text-foreground">{formatDate(application.latest_update_date)}</p>
             </div>
 
-            <div className="p-3 rounded-lg bg-secondary/50 border border-border space-y-0.5 col-span-2">
+            <div className="p-3 rounded-lg bg-secondary/50 border border-border space-y-1 col-span-2">
               <span className="text-muted-foreground flex items-center gap-1 text-[11px]">
                 <Mail className="w-3 h-3" />
                 Contact / Sender
               </span>
-              <p className="font-medium text-foreground truncate">{application.sender || "Manual entry"}</p>
+              <div className="flex items-center gap-2 min-w-0">
+                <SenderAvatar
+                  sender={application.sender}
+                  company={application.company}
+                  size="sm"
+                />
+                <p className="font-medium text-foreground truncate text-xs">{application.sender || "Manual entry"}</p>
+              </div>
             </div>
           </div>
 

@@ -1,22 +1,18 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { User } from "@supabase/supabase-js";
 import {
   Search,
   Inbox,
   CircleDot,
   CircleDashed,
-  RotateCcw,
-  Folder,
   Kanban,
   ChevronRight,
   ChevronDown,
   Sprout,
   Sun,
   Moon,
-  PanelRight,
-  Check,
-  Plus,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { ApplicationStatus, ActiveView } from "@/types/application";
@@ -29,14 +25,9 @@ import {
   SidebarInput,
   useSidebar,
 } from "@/components/ui/sidebar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { NavUser } from "@/components/nav-user";
+import { ModeToggle } from "@/components/mode-toggle";
+import { getUserAvatarUrl } from "@/lib/utils";
 
 interface LinearSidebarProps {
   activeView?: ActiveView;
@@ -53,6 +44,9 @@ interface LinearSidebarProps {
   onOpenAddModal: () => void;
   isRealtimeConnected: boolean;
   isDemoMode: boolean;
+  user?: User | null;
+  onOpenAuthModal?: () => void;
+  onSignOut?: () => void;
 }
 
 export const LinearSidebar: React.FC<LinearSidebarProps> = ({
@@ -70,9 +64,11 @@ export const LinearSidebar: React.FC<LinearSidebarProps> = ({
   onOpenAddModal,
   isRealtimeConnected,
   isDemoMode,
+  user = null,
+  onOpenAuthModal,
+  onSignOut,
 }) => {
   const [teamOpen, setTeamOpen] = useState(true);
-  const [activeWorkspace, setActiveWorkspace] = useState("Brandby");
   const { setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const { toggleSidebar } = useSidebar();
@@ -87,78 +83,45 @@ export const LinearSidebar: React.FC<LinearSidebarProps> = ({
     setTheme(isDarkMode ? "light" : "dark");
   };
 
+  // Derive user profile display values matching reference
+  const displayName =
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    (user?.email
+      ? user.email
+          .split("@")[0]
+          .replace(/[._-]/g, " ")
+          .replace(/\b\w/g, (l) => l.toUpperCase())
+      : "Liam Smith");
+  const displayEmail = user?.email || (isDemoMode ? "smith@example.com" : "");
+  const avatarUrl = getUserAvatarUrl(
+    user?.email || (isDemoMode ? "smith@example.com" : null),
+    user?.user_metadata?.avatar_url || user?.user_metadata?.picture
+  );
+
   return (
     <Sidebar collapsible="offcanvas" className="border-r-0 border-none bg-sidebar text-sidebar-foreground w-64">
-      {/* Header: Brandby Switcher + Toggle Button + Search */}
-      <SidebarHeader className="p-3 pb-2 pt-5 gap-2 border-none ">
+      {/* Header: Brandby Switcher + Search */}
+      <SidebarHeader className="p-3 pb-2 pt-5 gap-2 border-none">
         <div className="flex items-center justify-between">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-2 text-foreground font-medium text-[13.5px] hover:opacity-85 transition-opacity focus:outline-none">
-                {/* Brandby logo: dark rounded square with lime geometric icon */}
-                <div className="w-5.5 h-5.5 rounded-md bg-[#1c1d1f] flex items-center justify-center shrink-0 shadow-xs p-1">
-                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="5" cy="5" r="1.2" fill="#D2FD29" />
-                    <circle cx="11" cy="5" r="1.2" fill="#D2FD29" />
-                    <circle cx="5" cy="11" r="1.2" fill="#D2FD29" />
-                    <circle cx="11" cy="11" r="1.2" fill="#D2FD29" />
-                    <line x1="2.5" y1="5" x2="13.5" y2="5" stroke="#D2FD29" strokeWidth="1.3" strokeLinecap="round" />
-                    <line x1="2.5" y1="11" x2="13.5" y2="11" stroke="#D2FD29" strokeWidth="1.3" strokeLinecap="round" />
-                    <line x1="5" y1="2.5" x2="5" y2="13.5" stroke="#D2FD29" strokeWidth="1.3" strokeLinecap="round" />
-                    <line x1="11" y1="2.5" x2="11" y2="13.5" stroke="#D2FD29" strokeWidth="1.3" strokeLinecap="round" />
-                  </svg>
-                </div>
-                <span className="truncate tracking-tight font-medium text-neutral-900 dark:text-neutral-100">
-                  {activeWorkspace}
-                </span>
-                <ChevronDown className="w-3.5 h-3.5 text-neutral-400 font-normal" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-52">
-              <DropdownMenuLabel className="text-[11px] text-muted-foreground uppercase tracking-wider">
-                Workspaces
-              </DropdownMenuLabel>
-              <DropdownMenuItem
-                onClick={() => setActiveWorkspace("Brandby")}
-                className="flex items-center justify-between cursor-pointer"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded bg-[#1c1d1f] flex items-center justify-center text-[9px] text-[#D2FD29] font-bold">
-                    #
-                  </div>
-                  <span>Brandby</span>
-                </div>
-                {activeWorkspace === "Brandby" && <Check className="w-3.5 h-3.5 text-foreground" />}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setActiveWorkspace("Trackly")}
-                className="flex items-center justify-between cursor-pointer"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded bg-emerald-500 flex items-center justify-center text-white text-[9px] font-bold">
-                    🎯
-                  </div>
-                  <span>Trackly</span>
-                </div>
-                {activeWorkspace === "Trackly" && <Check className="w-3.5 h-3.5 text-foreground" />}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={onOpenAddModal} className="flex items-center gap-2 cursor-pointer">
-                <Plus className="w-3.5 h-3.5 text-muted-foreground" />
-                <span>New Application</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {/* Top-Right Toggle Button matching reference */}
-          <button
-            type="button"
-            onClick={toggleSidebar}
-            className="w-6 h-6 rounded-md border border-neutral-200/90 dark:border-neutral-800 flex items-center justify-center text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shadow-2xs"
-            title="Toggle Sidebar"
-          >
-            <PanelRight className="w-3.5 h-3.5" />
-          </button>
+          {/* Brand Logo & Name */}
+          <div className="flex items-center gap-2 text-foreground font-medium text-[13.5px]">
+            <div className="w-5.5 h-5.5 rounded-md bg-[#1c1d1f] flex items-center justify-center shrink-0 shadow-xs p-1">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="5" cy="5" r="1.2" fill="#D2FD29" />
+                <circle cx="11" cy="5" r="1.2" fill="#D2FD29" />
+                <circle cx="5" cy="11" r="1.2" fill="#D2FD29" />
+                <circle cx="11" cy="11" r="1.2" fill="#D2FD29" />
+                <line x1="2.5" y1="5" x2="13.5" y2="5" stroke="#D2FD29" strokeWidth="1.3" strokeLinecap="round" />
+                <line x1="2.5" y1="11" x2="13.5" y2="11" stroke="#D2FD29" strokeWidth="1.3" strokeLinecap="round" />
+                <line x1="5" y1="2.5" x2="5" y2="13.5" stroke="#D2FD29" strokeWidth="1.3" strokeLinecap="round" />
+                <line x1="11" y1="2.5" x2="11" y2="13.5" stroke="#D2FD29" strokeWidth="1.3" strokeLinecap="round" />
+              </svg>
+            </div>
+            <span className="truncate tracking-tight font-medium text-neutral-900 dark:text-neutral-100">
+              Brandby
+            </span>
+          </div>
         </div>
 
         {/* Quick Search */}
@@ -214,7 +177,7 @@ export const LinearSidebar: React.FC<LinearSidebarProps> = ({
           >
             <div className="flex items-center gap-2.5">
               <CircleDot className="w-4 h-4 text-neutral-500 shrink-0" />
-              <span>My issues</span>
+              <span>My Board</span>
             </div>
             <span className="text-[11px] text-muted-foreground font-mono">
               {totalCount}
@@ -227,7 +190,7 @@ export const LinearSidebar: React.FC<LinearSidebarProps> = ({
           Teams
         </div>
 
-        {/* Collapsible Team: MSP Launch */}
+        {/* Collapsible Team: Workbench */}
         <div className="px-1 flex flex-col">
           <button
             type="button"
@@ -237,7 +200,7 @@ export const LinearSidebar: React.FC<LinearSidebarProps> = ({
             <div className="flex items-center gap-2">
               <Sprout className="w-4 h-4 text-emerald-500 shrink-0" />
               <span className="text-[13px] font-medium text-neutral-800 dark:text-neutral-200">
-                MSP Launch
+                Workbench
               </span>
             </div>
             <ChevronDown
@@ -286,73 +249,7 @@ export const LinearSidebar: React.FC<LinearSidebarProps> = ({
                       </span>
                     )}
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => onSelectView?.("backlog")}
-                    className={`w-full flex items-center justify-between px-2 py-1 rounded-md text-[13px] transition-colors ${
-                      activeView === "backlog"
-                        ? "bg-neutral-200/70 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 font-medium"
-                        : "text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800/50 hover:text-neutral-900"
-                    }`}
-                  >
-                    <span>Backlog</span>
-                    {wishlistCount > 0 && (
-                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-neutral-200/70 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 font-medium">
-                        {wishlistCount}
-                      </span>
-                    )}
-                  </button>
                 </div>
-              </div>
-
-              {/* Sprints Group */}
-              <div>
-                <div className="flex items-center gap-2 px-1 py-1 text-neutral-700 dark:text-neutral-300">
-                  <RotateCcw className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
-                  <span className="text-[13px]">Sprints</span>
-                </div>
-                <div className="ml-2.5 pl-2.5 border-l border-neutral-200 dark:border-neutral-800 my-0.5 flex flex-col gap-0.5">
-                  <div
-                    onClick={() => {
-                      onSelectView?.("board");
-                      onSelectStatusFilter("offer");
-                    }}
-                    className={`w-full flex items-center justify-between px-2 py-1 rounded-md text-[13px] cursor-pointer transition-colors ${
-                      activeView === "board" && activeStatusFilter === "offer"
-                        ? "bg-neutral-200/70 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 font-medium"
-                        : "text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800/50 hover:text-neutral-900"
-                    }`}
-                  >
-                    <span>Current</span>
-                    <span className="text-[11px] px-1.5 py-0.2 rounded bg-neutral-200/70 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 font-medium">
-                      {statusCounts.offer || 0}
-                    </span>
-                  </div>
-                  <div
-                    onClick={() => onSelectView?.("calendar")}
-                    className="w-full text-left px-2 py-1 rounded-md text-[13px] text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800/50 hover:text-neutral-900 cursor-pointer transition-colors"
-                  >
-                    Upcoming
-                  </div>
-                  <div
-                    onClick={() => {
-                      onSelectView?.("board");
-                      onSelectStatusFilter("rejected");
-                    }}
-                    className="w-full text-left px-2 py-1 rounded-md text-[13px] text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800/50 hover:text-neutral-900 cursor-pointer transition-colors"
-                  >
-                    Completed
-                  </div>
-                </div>
-              </div>
-
-              {/* Projects */}
-              <div
-                onClick={() => onSelectView?.("backlog")}
-                className="flex items-center gap-2 px-1 py-1 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800/50 rounded-md cursor-pointer transition-colors"
-              >
-                <Folder className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
-                <span className="text-[13px]">Projects</span>
               </div>
 
               {/* Views */}
@@ -370,9 +267,8 @@ export const LinearSidebar: React.FC<LinearSidebarProps> = ({
             </div>
           )}
 
-          {/* Secondary Teams / Projects */}
+          {/* Secondary Projects */}
           <div className="flex flex-col gap-0.5 mt-2">
-            {/* V1.0 */}
             <div className="flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800/50 transition-colors cursor-pointer group">
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded-full bg-gradient-to-tr from-purple-600 via-fuchsia-500 to-indigo-400 flex items-center justify-center text-[8px] text-white shadow-2xs">
@@ -385,7 +281,6 @@ export const LinearSidebar: React.FC<LinearSidebarProps> = ({
               <ChevronRight className="w-3 h-3 text-neutral-400 group-hover:text-neutral-600 transition-colors" />
             </div>
 
-            {/* Landing Page */}
             <div className="flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800/50 transition-colors cursor-pointer group">
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded-sm bg-amber-500/20 flex items-center justify-center text-[10px]">
@@ -401,41 +296,32 @@ export const LinearSidebar: React.FC<LinearSidebarProps> = ({
         </div>
       </SidebarContent>
 
-      {/* Footer matching reference */}
-      <SidebarFooter className="p-3 pt-2 bg-sidebar border-none flex flex-row items-center justify-between">
-        <div className="flex items-center gap-2">
+      {/* Footer: Official shadcn NavUser + Theme Switcher & Version */}
+      <SidebarFooter className="p-2.5 pt-1.5 bg-sidebar border-none flex flex-col gap-1.5">
+        <NavUser
+          user={{
+            name: displayName,
+            email: displayEmail || "Guest User",
+            avatar: avatarUrl,
+            isAuthenticated: !!user,
+          }}
+          onOpenAuthModal={onOpenAuthModal}
+          onSignOut={onSignOut}
+        />
 
-          {/* Theme switch capsule */}
-          <div
-            onClick={handleToggleTheme}
-            className="h-6 rounded-full bg-neutral-200/80 dark:bg-neutral-800 p-0.5 flex items-center gap-0.5 cursor-pointer border border-neutral-300/40 dark:border-neutral-700"
-            title="Toggle Light / Dark Mode"
-          >
-            <div
-              className={`w-5 h-5 rounded-full flex items-center justify-center transition-all ${
-                !isDarkMode
-                  ? "bg-white text-neutral-800 shadow-2xs"
-                  : "text-neutral-400 hover:text-neutral-200"
-              }`}
-            >
-              <Sun className="w-3 h-3" />
-            </div>
-            <div
-              className={`w-5 h-5 rounded-full flex items-center justify-center transition-all ${
-                isDarkMode
-                  ? "bg-neutral-700 text-white shadow-2xs"
-                  : "text-neutral-400 hover:text-neutral-600"
-              }`}
-            >
-              <Moon className="w-3 h-3" />
-            </div>
+        {/* Bottom utility bar: shadcn ModeToggle + Version */}
+        <div className="flex items-center justify-between px-1 pt-1.5 border-t border-neutral-200/50 dark:border-neutral-800/50">
+          <div className="flex items-center gap-1.5">
+            <ModeToggle />
+            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 font-normal">
+              Theme
+            </span>
           </div>
-        </div>
 
-        {/* Version tag */}
-        <span className="text-[10px] text-neutral-400 font-sans tracking-tight">
-          V1.00-20-002-03
-        </span>
+          <span className="text-[10px] text-neutral-400 font-sans tracking-tight">
+            V1.00-20-002-03
+          </span>
+        </div>
       </SidebarFooter>
 
       <SidebarRail />

@@ -41,6 +41,7 @@ export interface Event {
 
 export interface EventManagerProps {
   events?: Event[]
+  onEventClick?: (event: Event) => void
   onEventCreate?: (event: Omit<Event, "id">) => void
   onEventUpdate?: (id: string, event: Partial<Event>) => void
   onEventDelete?: (id: string) => void
@@ -63,6 +64,7 @@ const defaultColors = [
 
 export function EventManager({
   events: initialEvents = [],
+  onEventClick,
   onEventCreate,
   onEventUpdate,
   onEventDelete,
@@ -79,6 +81,10 @@ export function EventManager({
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
+
+  useEffect(() => {
+    setEvents(initialEvents)
+  }, [initialEvents])
 
   useEffect(() => {
     if (openCreateTrigger && openCreateTrigger > 0) {
@@ -669,8 +675,12 @@ export function EventManager({
           currentDate={currentDate}
           events={filteredEvents}
           onEventClick={(event) => {
-            setSelectedEvent(event)
-            setIsDialogOpen(true)
+            if (onEventClick) {
+              onEventClick(event)
+            } else {
+              setSelectedEvent(event)
+              setIsDialogOpen(true)
+            }
           }}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
@@ -684,8 +694,12 @@ export function EventManager({
           currentDate={currentDate}
           events={filteredEvents}
           onEventClick={(event) => {
-            setSelectedEvent(event)
-            setIsDialogOpen(true)
+            if (onEventClick) {
+              onEventClick(event)
+            } else {
+              setSelectedEvent(event)
+              setIsDialogOpen(true)
+            }
           }}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
@@ -699,8 +713,12 @@ export function EventManager({
           currentDate={currentDate}
           events={filteredEvents}
           onEventClick={(event) => {
-            setSelectedEvent(event)
-            setIsDialogOpen(true)
+            if (onEventClick) {
+              onEventClick(event)
+            } else {
+              setSelectedEvent(event)
+              setIsDialogOpen(true)
+            }
           }}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
@@ -713,8 +731,12 @@ export function EventManager({
         <ListView
           events={filteredEvents}
           onEventClick={(event) => {
-            setSelectedEvent(event)
-            setIsDialogOpen(true)
+            if (onEventClick) {
+              onEventClick(event)
+            } else {
+              setSelectedEvent(event)
+              setIsDialogOpen(true)
+            }
           }}
           getColorClasses={getColorClasses}
         />

@@ -20,6 +20,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { SenderAvatar } from "@/components/ui/sender-avatar";
 
 interface KanbanCardProps {
   application: JobApplication;
@@ -107,10 +108,12 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
             </h4>
           </div>
 
-          {/* Company Monogram Badge */}
-          <div className="w-6 h-6 rounded-full bg-secondary border border-border flex items-center justify-center text-[10px] font-bold text-secondary-foreground shrink-0">
-            {application.company.slice(0, 2).toUpperCase()}
-          </div>
+          {/* Recruiter / Company Avatar */}
+          <SenderAvatar
+            sender={application.sender}
+            company={application.company}
+            size="sm"
+          />
         </div>
 
 

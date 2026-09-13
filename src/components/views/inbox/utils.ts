@@ -1,4 +1,4 @@
-import { ApplicationStatus } from "@/types/application";
+import { ApplicationStatus, TriageStatus } from "@/types/application";
 
 export const getCompanyColor = (companyName: string): string => {
   const colors = [
@@ -16,7 +16,43 @@ export const getCompanyColor = (companyName: string): string => {
   return colors[Math.abs(hash) % colors.length];
 };
 
-export const getStatusBadgeClasses = (status: ApplicationStatus): string => {
+export const getStatusBadgeConfig = (status: TriageStatus) => {
+  switch (status) {
+    case "offer":
+      return {
+        label: "Offer Received",
+        dotBg: "bg-emerald-500",
+      };
+    case "interview":
+      return {
+        label: "Interview",
+        dotBg: "bg-blue-500",
+      };
+    case "reply":
+      return {
+        label: "Recruiter Reply",
+        dotBg: "bg-amber-500",
+      };
+    case "rejected":
+      return {
+        label: "Not Selected",
+        dotBg: "bg-rose-500",
+      };
+    case "unparsed":
+      return {
+        label: "Unparsed Email",
+        dotBg: "bg-zinc-500",
+      };
+    case "applied":
+    default:
+      return {
+        label: "Applied",
+        dotBg: "bg-purple-500",
+      };
+  }
+};
+
+export const getStatusBadgeClasses = (status: TriageStatus): string => {
   switch (status) {
     case "offer":
       return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25";
@@ -26,6 +62,8 @@ export const getStatusBadgeClasses = (status: ApplicationStatus): string => {
       return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25";
     case "rejected":
       return "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/25";
+    case "unparsed":
+      return "bg-zinc-500/10 text-zinc-600 dark:text-zinc-400 border-zinc-500/25";
     default:
       return "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/25";
   }
@@ -46,4 +84,3 @@ export const formatRelativeTime = (dateStr: string): string => {
     return dateStr;
   }
 };
-

@@ -200,6 +200,13 @@ const Column: React.FC<ColumnProps> = ({
         ))}
         <DropIndicator beforeId={null} column={column.id} />
 
+        {/* Empty state inside column when no cards */}
+        {columnApplications.length === 0 && (
+          <div className="py-8 text-center text-muted-foreground">
+            <p className="text-xs">No cards in {column.title}</p>
+          </div>
+        )}
+
         {/* Inline Add Card Component */}
         <AddCard column={column.id} onAddCard={onAddCard} />
       </div>

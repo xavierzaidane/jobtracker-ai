@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { TriageEmail, ApplicationStatus } from "@/types/application";
-import { Sparkles, Check, CheckCircle2 } from "lucide-react";
+import { Sparkles, Check, CheckCircle2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -16,7 +16,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getCompanyColor, getStatusBadgeClasses } from "./utils";
+import { getCompanyColor, getStatusBadgeConfig, getStatusBadgeClasses } from "./utils";
+import { cn } from "@/lib/utils";
+import { SenderAvatar } from "@/components/ui/sender-avatar";
 
 interface InboxDetailSheetProps {
   email: TriageEmail | null;
@@ -31,15 +33,22 @@ export const InboxDetailSheet: React.FC<InboxDetailSheetProps> = ({
   onApproveEmail,
   onDismissEmail,
 }) => {
-  const [overrideStatus, setOverrideStatus] = useState<ApplicationStatus | null>(null);
+  const [overrideStatus, setOverrideStatus] = useState<ApplicationStatus>("applied");
 
   useEffect(() => {
     if (email) {
-      setOverrideStatus(email.detected_status);
+      if (email.detected_status === "unparsed") {
+        setOverrideStatus("applied");
+      } else {
+        setOverrideStatus(email.detected_status as ApplicationStatus);
+      }
     }
   }, [email]);
 
   if (!email) return null;
+
+  const statusBadge = getStatusBadgeConfig(email.detected_status);
+  const isLowConfidence = email.confidence_score < 0.85 || email.detected_status === "unparsed";
 
   return (
     <Sheet open={!!email} onOpenChange={(open) => !open && onClose()}>
@@ -48,67 +57,74 @@ export const InboxDetailSheet: React.FC<InboxDetailSheetProps> = ({
         className="sm:max-w-lg p-0 flex flex-col gap-0 overflow-hidden bg-card"
       >
         {/* Sheet Header */}
-        <div className="p-5 border-b border-border bg-muted/20 flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div
-              className={`h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm border ${getCompanyColor(
-                email.company
-              )}`}
-            >
-              {email.company.slice(0, 2).toUpperCase()}
+        <div className="p-6 border-b border-border bg-card">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <SenderAvatar
+                sender={email.sender}
+                company={email.company}
+                size="lg"
+              />
+              <div>
+                <h3 className="font-semibold text-lg text-foreground leading-snug">
+                  {email.company}
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  {email.role} · <span className="text-foreground/80">{email.sender}</span>
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="font-semibold text-base text-foreground flex items-center gap-2">
-                {email.company}
-              </h3>
-              <p className="text-xs text-muted-foreground">{email.role}</p>
-            </div>
+            {email.is_approved && (
+              <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[11px] gap-1 shrink-0">
+                <Check className="w-3 h-3" />
+                Synced to Board
+              </Badge>
+            )}
           </div>
         </div>
 
         {/* Sheet Body */}
-        <div className="flex-1 overflow-y-auto custom-scroll p-5 space-y-4 text-xs">
-          {/* Email Subject & Sender info */}
-          <div className="p-3.5 rounded-xl bg-muted/30 border border-border/60 space-y-2">
-            <div className="flex items-center justify-between text-muted-foreground text-[11px]">
-              <span>From: {email.sender}</span>
-              <span>{new Date(email.date).toLocaleDateString()}</span>
-            </div>
-            <div className="font-semibold text-sm text-foreground">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          {/* Email Subject & Summary */}
+          <div className="space-y-2">
+            <h4 className="font-semibold text-sm text-foreground">
               {email.subject}
-            </div>
-            <div className="flex items-center gap-2 pt-1 border-t border-border/40 text-[11px] text-muted-foreground">
-              <span>Thread: {email.thread_id}</span>
+            </h4>
+            <div className="p-3.5 rounded-xl border border-border bg-muted/40 text-xs text-foreground/90 font-mono leading-relaxed whitespace-pre-wrap">
+              {email.raw_body || email.summary}
             </div>
           </div>
 
-          {/* Gemini AI Extraction Analysis Card */}
+          {/* AI Analysis Box */}
           <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-2.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 font-semibold text-primary text-xs">
-                <Sparkles className="w-4 h-4" />
-                <span>Gemini 1.5 Flash Reasoning</span>
+                {isLowConfidence ? <AlertTriangle className="w-4 h-4 text-amber-500" /> : <Sparkles className="w-4 h-4" />}
+                <span>Gemini Flash AI Analysis</span>
               </div>
               <Badge
                 variant="outline"
-                className="text-[11px] bg-card border-primary/25 text-primary font-semibold"
+                className={`text-[11px] font-semibold ${
+                  isLowConfidence
+                    ? "bg-amber-500/10 border-amber-500/25 text-amber-600 dark:text-amber-400"
+                    : "bg-card border-primary/25 text-primary"
+                }`}
               >
                 {Math.round(email.confidence_score * 100)}% Confidence
               </Badge>
             </div>
 
             <p className="text-muted-foreground text-xs leading-relaxed">
-              {email.ai_rationale}
+              {email.ai_rationale || "Processed by Gemini AI extraction pipeline."}
             </p>
 
             <div className="pt-2 border-t border-primary/10 flex items-center justify-between text-[11px]">
               <span className="text-muted-foreground">Extracted Stage:</span>
-              <span
-                className={`font-semibold px-2 py-0.5 rounded-md border capitalize ${getStatusBadgeClasses(
-                  email.detected_status
-                )}`}
-              >
-                {email.detected_status}
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-medium border border-border bg-card text-card-foreground shrink-0 shadow-2xs">
+                <span
+                  className={cn("w-1.5 h-1.5 rounded-full shrink-0", statusBadge.dotBg)}
+                />
+                <span>{statusBadge.label}</span>
               </span>
             </div>
           </div>
@@ -120,7 +136,7 @@ export const InboxDetailSheet: React.FC<InboxDetailSheetProps> = ({
                 Confirm Stage for Kanban Board:
               </label>
               <Select
-                value={overrideStatus || email.detected_status}
+                value={overrideStatus}
                 onValueChange={(v) => setOverrideStatus(v as ApplicationStatus)}
               >
                 <SelectTrigger className="h-9 text-xs">
@@ -165,7 +181,7 @@ export const InboxDetailSheet: React.FC<InboxDetailSheetProps> = ({
               <Button
                 size="sm"
                 onClick={() => {
-                  onApproveEmail(email, overrideStatus || undefined);
+                  onApproveEmail(email, overrideStatus);
                   onClose();
                 }}
                 className="text-xs font-semibold px-3 bg-primary text-primary-foreground hover:bg-primary/90 gap-1 shadow-xs"
@@ -188,4 +204,3 @@ export const InboxDetailSheet: React.FC<InboxDetailSheetProps> = ({
     </Sheet>
   );
 };
-

@@ -39,7 +39,7 @@ export const InboxGroupHeader: React.FC<InboxGroupHeaderProps> = ({
       </TableCell>
       <TableCell colSpan={4} className="py-2 pr-6">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+          <span className="text-xs font-normal text-foreground flex items-center gap-1.5">
             <span className={accent}>{title}</span>
             <span className="text-[11px] font-normal text-muted-foreground">
               ({count})

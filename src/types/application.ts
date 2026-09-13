@@ -1,17 +1,8 @@
 export type ApplicationStatus = 'applied' | 'reply' | 'interview' | 'offer' | 'rejected';
 
-export type ActiveView = 'board' | 'calendar' | 'backlog' | 'analytics' | 'inbox';
+export type TriageStatus = ApplicationStatus | 'unparsed';
 
-export interface WishlistJob {
-  id: string;
-  company: string;
-  role: string;
-  location?: string;
-  salary_range?: string;
-  url?: string;
-  notes?: string;
-  date_added: string;
-}
+export type ActiveView = 'board' | 'calendar' | 'analytics' | 'inbox';
 
 export interface InterviewEvent {
   id: string;
@@ -30,17 +21,37 @@ export interface InterviewEvent {
 
 export interface TriageEmail {
   id: string;
+  user_id?: string;
+  application_id?: string;
   thread_id: string;
+  message_id?: string;
   company: string;
   role: string;
   sender: string;
   subject: string;
   date: string;
-  detected_status: ApplicationStatus;
+  snippet?: string;
+  raw_body?: string;
+  detected_status: TriageStatus;
   confidence_score: number; // e.g. 0.96
   ai_rationale: string;
   summary: string;
   is_approved: boolean;
+  status?: 'pending' | 'approved' | 'dismissed';
+}
+
+export interface AppNotification {
+  id: string;
+  user_id?: string;
+  application_id?: string | null;
+  title: string;
+  message: string;
+  status: ApplicationStatus;
+  company: string;
+  role: string;
+  sender?: string | null;
+  is_read: boolean;
+  created_at: string;
 }
 
 export interface HistoryLogEntry {
@@ -53,6 +64,7 @@ export interface HistoryLogEntry {
 
 export interface JobApplication {
   id: string;
+  user_id?: string;
   thread_id?: string | null;
   company: string;
   role: string;
@@ -142,4 +154,3 @@ export const COLUMNS: ColumnDefinition[] = [
     icon: 'XCircle',
   },
 ];
-
