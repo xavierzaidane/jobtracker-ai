@@ -36,11 +36,11 @@ Job hunting across dozens of platforms often leads to lost recruiter emails, mis
 ### 📋 1. Classic 5-Column Kanban Board
 - **Fluid Drag-and-Drop**: Built with `@hello-pangea/dnd` and dynamic drop indicators.
 - **5 Standard Stages**:
-  - `Applied` (🟣 Purple)
-  - `Recruiter Reply` (🟡 Amber)
+  - `Applied` 
+  - `Recruiter Reply` 
   - `Interview` (🔵 Blue)
-  - `Offer Received` (🟢 Emerald)
-  - `Not Selected` (🔴 Rose)
+  - `Offer Received` 
+  - `Not Selected` 
 - **Inline Card Creation**: Press `N` or click `+ Add Application` to quickly log opportunities.
 - **Burn Barrel Zone**: Drag cards to the trash barrel to quickly archive or delete records.
 
