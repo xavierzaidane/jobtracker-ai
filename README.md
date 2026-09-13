@@ -38,7 +38,7 @@ Job hunting across dozens of platforms often leads to lost recruiter emails, mis
 - **5 Standard Stages**:
   - `Applied` 
   - `Recruiter Reply` 
-  - `Interview` (🔵 Blue)
+  - `Interview` 
   - `Offer Received` 
   - `Not Selected` 
 - **Inline Card Creation**: Press `N` or click `+ Add Application` to quickly log opportunities.
