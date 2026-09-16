@@ -3,8 +3,6 @@
 import React from "react";
 import { Card } from "@/components/ui/card";
 import {
-  ArrowUpRight,
-  ArrowDownRight,
   Award,
   Calendar,
   Mail,
@@ -21,7 +19,7 @@ export const AnalyticsMetricsGrid: React.FC<AnalyticsMetricsGridProps> = ({
 }) => {
   return (
     <div className="md:col-span-1 xl:col-span-4 grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-      {/* Tile 1: Primary Brand Color Highlight Card */}
+      {/* Tile 1: Active Offers */}
       <Card className="rounded-2xl p-5 shadow-xs border border-primary/30 bg-primary text-primary-foreground flex flex-col justify-between min-h-[150px]">
         <div className="flex items-center justify-between">
           <span className="text-sm font-normal text-primary-foreground/90">
@@ -38,16 +36,16 @@ export const AnalyticsMetricsGrid: React.FC<AnalyticsMetricsGridProps> = ({
           </div>
         </div>
 
-        <div>
-
+        <div className="text-xs text-primary-foreground/80">
+          Decisions pending
         </div>
       </Card>
 
-      {/* Tile 2: Total Spending / Interview Stage */}
+      {/* Tile 2: Interviews Scheduled */}
       <Card className="rounded-2xl p-5 shadow-xs border border-border bg-card text-card-foreground flex flex-col justify-between min-h-[150px]">
         <div className="flex items-center justify-between">
           <span className="text-sm font-normal text-muted-foreground">
-            Total Spending
+            Interviews Scheduled
           </span>
           <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-blue-500">
             <Calendar className="w-3.5 h-3.5" />
@@ -56,19 +54,20 @@ export const AnalyticsMetricsGrid: React.FC<AnalyticsMetricsGridProps> = ({
 
         <div className="my-1">
           <div className="text-4xl font-normal tracking-tight text-foreground">
-            ${metrics.interviews * 140}
+            {metrics.interviews} {metrics.interviews === 1 ? "Round" : "Rounds"}
           </div>
         </div>
 
-        <div>
+        <div className="text-xs text-muted-foreground">
+          {metrics.interviewRate}% interview rate
         </div>
       </Card>
 
-      {/* Tile 3: Total Income / Recruiter Replies */}
+      {/* Tile 3: Recruiter Replies */}
       <Card className="rounded-2xl p-5 shadow-xs border border-border bg-card text-card-foreground flex flex-col justify-between min-h-[150px]">
         <div className="flex items-center justify-between">
           <span className="text-sm font-normal text-muted-foreground">
-            Total Income
+            Recruiter Replies
           </span>
           <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-amber-500">
             <Mail className="w-3.5 h-3.5" />
@@ -77,19 +76,20 @@ export const AnalyticsMetricsGrid: React.FC<AnalyticsMetricsGridProps> = ({
 
         <div className="my-1">
           <div className="text-4xl font-normal tracking-tight text-foreground">
-            $1,050
+            {metrics.replies} {metrics.replies === 1 ? "Reply" : "Replies"}
           </div>
         </div>
 
-        <div>
+        <div className="text-xs text-muted-foreground">
+          Awaiting follow-up
         </div>
       </Card>
 
-      {/* Tile 4: Total Revenue / Avg Response Days */}
+      {/* Tile 4: Response Rate */}
       <Card className="rounded-2xl p-5 shadow-xs border border-border bg-card text-card-foreground flex flex-col justify-between min-h-[150px]">
         <div className="flex items-center justify-between">
           <span className="text-sm font-normal text-muted-foreground">
-            Total Revenue
+            Response Rate
           </span>
           <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-primary">
             <Clock className="w-3.5 h-3.5" />
@@ -98,14 +98,14 @@ export const AnalyticsMetricsGrid: React.FC<AnalyticsMetricsGridProps> = ({
 
         <div className="my-1">
           <div className="text-4xl font-normal tracking-tight text-foreground">
-            $850
+            {metrics.responseRate}%
           </div>
         </div>
 
-        <div>
+        <div className="text-xs text-muted-foreground">
+          Avg {metrics.avgResponseDays} days turnaround
         </div>
       </Card>
     </div>
   );
 };
-

@@ -32,6 +32,7 @@ import {
 } from "./utils";
 import { cn } from "@/lib/utils";
 import { SenderAvatar } from "@/components/ui/sender-avatar";
+import { getATSSourceBadge } from "@/lib/atsParsers";
 
 interface InboxRowProps {
   email: TriageEmail;
@@ -132,6 +133,21 @@ export const InboxRow: React.FC<InboxRowProps> = ({
           </span>
 
           {/* Pill 2: Timestamp */}
+          {/* Pill 2: ATS Badge */}
+          {email.ats_source && email.ats_source !== "generic" && (() => {
+            const atsBadge = getATSSourceBadge(email.ats_source);
+            if (!atsBadge) return null;
+            return (
+              <span
+                className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium border shrink-0 ${atsBadge.bgClass} ${atsBadge.textClass} ${atsBadge.borderClass}`}
+                title={`Processed via ${atsBadge.name} parser`}
+              >
+                {atsBadge.name}
+              </span>
+            );
+          })()}
+
+          {/* Pill 3: Timestamp */}
           <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-lg text-muted-foreground bg-muted/40">
             <Clock className="w-3 h-3" />
             <span>{formatRelativeTime(email.date)}</span>

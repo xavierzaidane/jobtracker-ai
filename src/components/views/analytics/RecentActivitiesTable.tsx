@@ -44,9 +44,7 @@ export const RecentActivitiesTable: React.FC<RecentActivitiesTableProps> = ({
   const [activeFilter, setActiveFilter] = useState<
     "All" | "Offers" | "Interviews" | "Replies" | "Applied"
   >("All");
-  const [selectedRowIds, setSelectedRowIds] = useState<Record<string, boolean>>({
-    APP_000073: true,
-  });
+  const [selectedRowIds, setSelectedRowIds] = useState<Record<string, boolean>>({});
 
   const filteredActivities = useMemo(() => {
     return activities.filter((item) => {
@@ -58,12 +56,9 @@ export const RecentActivitiesTable: React.FC<RecentActivitiesTableProps> = ({
 
       let matchesFilter = true;
       if (activeFilter === "Offers") matchesFilter = item.statusStage === "offer";
-      else if (activeFilter === "Interviews")
-        matchesFilter = item.statusStage === "interview";
-      else if (activeFilter === "Replies")
-        matchesFilter = item.statusStage === "reply";
-      else if (activeFilter === "Applied")
-        matchesFilter = item.statusStage === "applied";
+      if (activeFilter === "Interviews") matchesFilter = item.statusStage === "interview";
+      if (activeFilter === "Replies") matchesFilter = item.statusStage === "reply";
+      if (activeFilter === "Applied") matchesFilter = item.statusStage === "applied";
 
       return matchesSearch && matchesFilter;
     });
@@ -77,39 +72,39 @@ export const RecentActivitiesTable: React.FC<RecentActivitiesTableProps> = ({
   };
 
   const toggleAllRows = () => {
-    const allSelected =
-      filteredActivities.length > 0 &&
-      filteredActivities.every((item) => selectedRowIds[item.id]);
-
-    const nextState: Record<string, boolean> = {};
-    if (!allSelected) {
+    if (filteredActivities.every((item) => selectedRowIds[item.id])) {
+      setSelectedRowIds({});
+    } else {
+      const allSelected: Record<string, boolean> = {};
       filteredActivities.forEach((item) => {
-        nextState[item.id] = true;
+        allSelected[item.id] = true;
       });
+      setSelectedRowIds(allSelected);
     }
-    setSelectedRowIds(nextState);
   };
 
   return (
-    <Card className="rounded-2xl p-5 shadow-xs border border-border bg-card text-card-foreground flex flex-col justify-between space-y-4">
-      {/* Header with Search & Filter */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <Card className="rounded-2xl p-5 shadow-xs border border-border bg-card text-card-foreground space-y-4">
+      {/* Header with Title and Search/Filter Controls */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-normal tracking-tight text-foreground">
-            Recent Activities
+            Recent Activity
           </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Real-time feed of applications and recruiter messages
+          </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           {/* Search Input */}
-          <div className="relative">
-            <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <div className="relative flex-1 sm:w-56">
+            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
-              type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search"
-              className="w-40 sm:w-56 h-8.5 pl-8 pr-3 text-xs rounded-full bg-background border-border text-foreground placeholder:text-muted-foreground"
+              placeholder="Search activity..."
+              className="h-8 pl-8 text-xs rounded-xl bg-background border-border text-foreground placeholder:text-muted-foreground"
             />
           </div>
 
@@ -117,42 +112,34 @@ export const RecentActivitiesTable: React.FC<RecentActivitiesTableProps> = ({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
-                className="px-3 text-xs font-medium gap-1.5  text-foreground"
+                className="h-8 text-xs font-medium rounded-xl border-border bg-background hover:bg-secondary text-foreground gap-1.5"
               >
-                <SlidersHorizontal className="w-3.5 h-3.5 text-muted-foreground" />
-                <span>Filter</span>
+                <SlidersHorizontal className="w-3.5 h-3.5" />
+                <span>{activeFilter}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
               align="end"
-              className="w-40 rounded-xl border-border bg-popover text-popover-foreground"
+              className="w-40 rounded-xl bg-popover text-popover-foreground border-border text-xs"
             >
-              <DropdownMenuLabel className="text-xs">
-                Filter by Stage
-              </DropdownMenuLabel>
+              <DropdownMenuLabel>Filter by stage</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              {(
-                [
-                  "All",
-                  "Offers",
-                  "Interviews",
-                  "Replies",
-                  "Applied",
-                ] as const
-              ).map((filterOption) => (
-                <DropdownMenuItem
-                  key={filterOption}
-                  onClick={() => setActiveFilter(filterOption)}
-                  className="text-xs flex items-center justify-between cursor-pointer"
-                >
-                  <span>{filterOption}</span>
-                  {activeFilter === filterOption && (
-                    <Check className="w-3.5 h-3.5 text-primary" />
-                  )}
-                </DropdownMenuItem>
-              ))}
+              {(["All", "Offers", "Interviews", "Replies", "Applied"] as const).map(
+                (filterOption) => (
+                  <DropdownMenuItem
+                    key={filterOption}
+                    onClick={() => setActiveFilter(filterOption)}
+                    className="flex items-center justify-between cursor-pointer"
+                  >
+                    <span>{filterOption}</span>
+                    {activeFilter === filterOption && (
+                      <Check className="w-3.5 h-3.5 text-primary" />
+                    )}
+                  </DropdownMenuItem>
+                )
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -161,7 +148,7 @@ export const RecentActivitiesTable: React.FC<RecentActivitiesTableProps> = ({
       {/* Table */}
       <Table>
         <TableHeader>
-          <TableRow className="hover:bg-transparent border-border">
+          <TableRow className="border-border hover:bg-transparent">
             <TableHead className="w-8 py-2.5 px-2">
               <input
                 type="checkbox"
@@ -174,13 +161,13 @@ export const RecentActivitiesTable: React.FC<RecentActivitiesTableProps> = ({
               />
             </TableHead>
             <TableHead className="text-xs font-medium text-muted-foreground py-2.5 px-3">
-              Order ID
+              ID
             </TableHead>
             <TableHead className="text-xs font-medium text-muted-foreground py-2.5 px-3">
               Activity
             </TableHead>
             <TableHead className="text-xs font-medium text-muted-foreground py-2.5 px-3">
-              Price
+              Source
             </TableHead>
             <TableHead className="text-xs font-medium text-muted-foreground py-2.5 px-3">
               Status
@@ -198,7 +185,9 @@ export const RecentActivitiesTable: React.FC<RecentActivitiesTableProps> = ({
                 colSpan={7}
                 className="text-center py-8 text-muted-foreground text-xs"
               >
-                No activities found matching criteria.
+                {searchQuery || activeFilter !== "All"
+                  ? "No activities found matching criteria."
+                  : "No application activity recorded yet. Tracked applications and recruiter updates will appear here."}
               </TableCell>
             </TableRow>
           ) : (
@@ -224,7 +213,7 @@ export const RecentActivitiesTable: React.FC<RecentActivitiesTableProps> = ({
                     />
                   </TableCell>
 
-                  {/* Order ID */}
+                  {/* ID */}
                   <TableCell className="py-3 px-3 font-mono text-[11px] text-muted-foreground">
                     {row.displayId}
                   </TableCell>
@@ -248,17 +237,9 @@ export const RecentActivitiesTable: React.FC<RecentActivitiesTableProps> = ({
                     </div>
                   </TableCell>
 
-                  {/* Price / Target Comp */}
-                  <TableCell className="py-3 px-3 font-mono text-xs font-normal text-foreground">
-                    $
-                    {(
-                      25000 +
-                      (row.displayId.charCodeAt(
-                        row.displayId.length - 1
-                      ) %
-                        6) *
-                        7500
-                    ).toLocaleString()}
+                  {/* Source */}
+                  <TableCell className="py-3 px-3 text-xs text-muted-foreground truncate max-w-[120px]">
+                    {row.source}
                   </TableCell>
 
                   {/* Status Badge */}
@@ -310,4 +291,3 @@ export const RecentActivitiesTable: React.FC<RecentActivitiesTableProps> = ({
     </Card>
   );
 };
-

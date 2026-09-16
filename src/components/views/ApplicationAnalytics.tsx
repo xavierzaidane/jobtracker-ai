@@ -55,10 +55,10 @@ export const ApplicationAnalytics: React.FC<ApplicationAnalyticsProps> = ({
     const respondedCount =
       counts.reply + counts.interview + counts.offer + counts.rejected;
     const responseRate =
-      total > 0 ? Math.round((respondedCount / total) * 100) : 68;
+      total > 0 ? Math.round((respondedCount / total) * 100) : 0;
     const interviewCount = counts.interview + counts.offer;
     const interviewRate =
-      total > 0 ? Math.round((interviewCount / total) * 100) : 45;
+      total > 0 ? Math.round((interviewCount / total) * 100) : 0;
 
     // Calculate response days
     let totalDays = 0;
@@ -78,7 +78,7 @@ export const ApplicationAnalytics: React.FC<ApplicationAnalyticsProps> = ({
       }
     });
     const avgResponseDays =
-      countedApps > 0 ? (totalDays / countedApps).toFixed(1) : "4.2";
+      countedApps > 0 ? (totalDays / countedApps).toFixed(1) : "0.0";
 
     // Weekly applications submitted (last 7 days)
     const sevenDaysAgo = Date.now() - 7 * 86400000;
@@ -86,24 +86,18 @@ export const ApplicationAnalytics: React.FC<ApplicationAnalyticsProps> = ({
       const d = new Date(app.applied_date).getTime();
       return d >= sevenDaysAgo;
     }).length;
-    const submittedThisWeek = recentSubmissions > 0 ? recentSubmissions : 4;
+    const submittedThisWeek = recentSubmissions;
     const weeklyTarget = 5;
 
     const pendingInboxCount = triageEmails.filter((e) => !e.is_approved).length;
 
     return {
-      total: total > 0 ? total : 48,
+      total,
       rawTotal: total,
-      offers: counts.offer > 0 ? counts.offer : total > 0 ? counts.offer : 2,
-      interviews:
-        counts.interview > 0
-          ? counts.interview
-          : total > 0
-          ? counts.interview
-          : 5,
-      replies: counts.reply > 0 ? counts.reply : total > 0 ? counts.reply : 8,
-      applied:
-        counts.applied > 0 ? counts.applied : total > 0 ? counts.applied : 33,
+      offers: counts.offer,
+      interviews: counts.interview,
+      replies: counts.reply,
+      applied: counts.applied,
       responseRate,
       interviewRate,
       avgResponseDays,
@@ -119,8 +113,12 @@ export const ApplicationAnalytics: React.FC<ApplicationAnalyticsProps> = ({
 
     // Map Board Applications
     applications.forEach((app, idx) => {
-      const sources = ["LinkedIn", "Referral", "Direct ATS", "Company Portal"];
-      const assignedSource = sources[idx % sources.length];
+      const assignedSource = app.ats_source
+        ? app.ats_source.toUpperCase()
+        : app.summary?.toLowerCase().includes("referral")
+        ? "Referral"
+        : "Direct Application";
+
       const avatarIcons: ActivityRowItem["avatarIcon"][] = [
         "zap",
         "compass",
@@ -143,7 +141,7 @@ export const ApplicationAnalytics: React.FC<ApplicationAnalyticsProps> = ({
 
       items.push({
         id: `board-${app.id}`,
-        displayId: `APP_${String(idx + 70).padStart(6, "0")}`,
+        displayId: `APP_${String(idx + 1).padStart(6, "0")}`,
         company: app.company,
         role: app.role,
         sender: app.sender,
@@ -167,11 +165,11 @@ export const ApplicationAnalytics: React.FC<ApplicationAnalyticsProps> = ({
     triageEmails.forEach((email, idx) => {
       items.push({
         id: `inbox-${email.id}`,
-        displayId: `TRG_${String(idx + 20).padStart(6, "0")}`,
+        displayId: `TRG_${String(idx + 1).padStart(6, "0")}`,
         company: email.company,
         role: email.role,
         sender: email.sender,
-        source: "AI Triage Inbox",
+        source: email.ats_source ? `${email.ats_source.toUpperCase()} (AI)` : "AI Triage Inbox",
         avatarBg: "bg-primary/10 text-primary border border-primary/20",
         avatarIcon: "send",
         statusStage: email.detected_status,
@@ -187,119 +185,75 @@ export const ApplicationAnalytics: React.FC<ApplicationAnalyticsProps> = ({
       });
     });
 
-    // Fallback activities if none exist
-    if (items.length === 0) {
-      return [
-        {
-          id: "fb-1",
-          displayId: "APP_000076",
-          company: "Anthropic",
-          role: "Research Engineer · Systems",
-          sender: "recruiting@anthropic.com",
-          source: "Referral",
-          avatarBg: "bg-primary text-primary-foreground",
-          avatarIcon: "zap",
-          statusStage: "offer",
-          date: "17 Apr, 2026 03:45 PM",
-          rawDate: Date.now() - 3600000,
-          origin: "board",
-        },
-        {
-          id: "fb-2",
-          displayId: "APP_000075",
-          company: "OpenAI",
-          role: "Fullstack Engineer · Platform",
-          sender: "talent@openai.com",
-          source: "Direct ATS",
-          avatarBg:
-            "bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/20",
-          avatarIcon: "compass",
-          statusStage: "interview",
-          date: "15 Apr, 2026 11:30 AM",
-          rawDate: Date.now() - 7200000,
-          origin: "board",
-        },
-        {
-          id: "fb-3",
-          displayId: "APP_000074",
-          company: "Linear",
-          role: "Senior Frontend Engineer",
-          sender: "hiring@linear.app",
-          source: "LinkedIn",
-          avatarBg:
-            "bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/20",
-          avatarIcon: "send",
-          statusStage: "offer",
-          date: "15 Apr, 2026 12:00 PM",
-          rawDate: Date.now() - 14400000,
-          origin: "board",
-        },
-        {
-          id: "fb-4",
-          displayId: "APP_000073",
-          company: "Vercel",
-          role: "Infrastructure Engineer · Edge",
-          sender: "recruiting@vercel.com",
-          source: "LinkedIn",
-          avatarBg:
-            "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20",
-          avatarIcon: "sparkles",
-          statusStage: "reply",
-          date: "14 Apr, 2026 09:15 PM",
-          rawDate: Date.now() - 28800000,
-          origin: "board",
-        },
-        {
-          id: "fb-5",
-          displayId: "APP_000072",
-          company: "Supabase",
-          role: "Staff Backend Architect",
-          sender: "careers@supabase.io",
-          source: "Direct ATS",
-          avatarBg:
-            "bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/20",
-          avatarIcon: "building",
-          statusStage: "applied",
-          date: "10 Apr, 2026 06:00 AM",
-          rawDate: Date.now() - 86400000,
-          origin: "board",
-        },
-      ];
-    }
-
     return items.sort((a, b) => b.rawDate - a.rawDate);
   }, [applications, triageEmails]);
 
   // Top Target Cards (Dynamically derived from applications)
   const topProspects: TopProspects = useMemo(() => {
-    const topInterview = applications.find(
-      (a) => a.status === "interview"
-    ) || {
-      company: "Google",
-      role: "Staff Software Engineer",
-      status: "interview",
-    };
-
-    const topOffer = applications.find((a) => a.status === "offer") || {
-      company: "Stripe",
-      role: "Tech Lead · Payments",
-      status: "offer",
-    };
+    const topInterview = applications.find((a) => a.status === "interview");
+    const topOffer = applications.find((a) => a.status === "offer");
 
     return {
-      card1: {
-        company: topInterview.company,
-        role: topInterview.role,
-        stage: "System Design & Arch",
-        compRange: "$280,000 - $320,000",
-      },
-      card2: {
-        company: topOffer.company,
-        role: topOffer.role,
-        stage: "Final Offer Extended",
-        compRange: "$265,000 - $295,000",
-      },
+      card1: topInterview
+        ? {
+            company: topInterview.company,
+            role: topInterview.role,
+            stage: "Interview Stage",
+            compRange: "Active",
+          }
+        : null,
+      card2: topOffer
+        ? {
+            company: topOffer.company,
+            role: topOffer.role,
+            stage: "Offer Extended",
+            compRange: "Review Compensation",
+          }
+        : null,
     };
+  }, [applications]);
+
+  // Dynamic monthly application volume for chart
+  const monthlyChartData = useMemo(() => {
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const last6: {
+      month: string;
+      year: number;
+      monthIndex: number;
+      sent: number;
+      interviews: number;
+    }[] = [];
+
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      last6.push({
+        month: monthNames[d.getMonth()],
+        year: d.getFullYear(),
+        monthIndex: d.getMonth(),
+        sent: 0,
+        interviews: 0,
+      });
+    }
+
+    applications.forEach((app) => {
+      const dateStr = app.applied_date || app.latest_update_date;
+      if (!dateStr) return;
+      const appDate = new Date(dateStr);
+      if (isNaN(appDate.getTime())) return;
+
+      const bucket = last6.find(
+        (b) => b.monthIndex === appDate.getMonth() && b.year === appDate.getFullYear()
+      );
+      if (bucket) {
+        bucket.sent++;
+        if (app.status === "interview" || app.status === "offer") {
+          bucket.interviews++;
+        }
+      }
+    });
+
+    return last6.map(({ month, sent, interviews }) => ({ month, sent, interviews }));
   }, [applications]);
 
   return (
@@ -316,16 +270,17 @@ export const ApplicationAnalytics: React.FC<ApplicationAnalyticsProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-5">
           <PipelineSummaryCard
             total={metrics.total}
+            applications={applications}
             onQuickApply={onQuickApply}
             onNavigateView={onNavigateView}
           />
           <AnalyticsMetricsGrid metrics={metrics} />
-          <IncomeBarChart />
+          <IncomeBarChart data={monthlyChartData} />
         </div>
 
         {/* BOTTOM ROW: 2 Responsive Columns */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          {/* Left Column: Spending Limit + My Cards */}
+          {/* Left Column: Outreach Goal + Top Target Roles */}
           <div className="lg:col-span-5 xl:col-span-4 space-y-5">
             <WeeklyOutreachGoal
               submittedThisWeek={metrics.submittedThisWeek}

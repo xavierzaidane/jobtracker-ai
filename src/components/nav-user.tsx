@@ -4,6 +4,7 @@ import * as React from "react"
 import {
   BadgeCheck,
   Bell,
+  Calendar,
   ChevronsUpDown,
   LogOut,
   Moon,
@@ -20,6 +21,7 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@/components/ui/avatar"
+import { GoogleCalendar } from "@/components/icons/logos-google-calendar"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,20 +42,22 @@ import {
 } from "@/components/ui/sidebar"
 import { getUserAvatarUrl } from "@/lib/utils"
 
-interface NavUserProps {
+export interface NavUserProps {
   user: {
     name: string
     email: string
-    avatar?: string
+    avatar: string
     isAuthenticated?: boolean
   }
   onOpenAuthModal?: () => void
+  onOpenSettingsModal?: () => void
   onSignOut?: () => void
 }
 
 export function NavUser({
   user,
   onOpenAuthModal,
+  onOpenSettingsModal,
   onSignOut,
 }: NavUserProps) {
   const { isMobile } = useSidebar()
@@ -89,7 +93,7 @@ export function NavUser({
                 <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-sidebar" />
               </div>
               <div className="grid flex-1 text-left text-xs leading-tight ml-0.5 min-w-0">
-                <span className="truncate font-semibold text-[13px] text-neutral-900 dark:text-neutral-100">
+                <span className="truncate font-normal text-[13px] text-neutral-900 dark:text-neutral-100">
                   {user.name}
                 </span>
                 <span className="truncate text-[11px] text-neutral-500 dark:text-neutral-400 font-normal">
@@ -142,6 +146,14 @@ export function NavUser({
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
+              <DropdownMenuItem
+                onClick={onOpenSettingsModal}
+                className="cursor-pointer gap-2 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <GoogleCalendar size={16} className="shrink-0" />
+                <span>Integrations & Settings</span>
+              </DropdownMenuItem>
+
               <DropdownMenuItem
                 onClick={onOpenAuthModal}
                 className="cursor-pointer gap-2 py-1.5 text-xs text-muted-foreground hover:text-foreground"

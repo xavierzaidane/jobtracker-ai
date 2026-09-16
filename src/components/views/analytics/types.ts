@@ -38,8 +38,8 @@ export interface TopProspectItem {
 }
 
 export interface TopProspects {
-  card1: TopProspectItem;
-  card2: TopProspectItem;
+  card1?: TopProspectItem | null;
+  card2?: TopProspectItem | null;
 }
 
 export const getStatusBadgeConfig = (status: TriageStatus) => {

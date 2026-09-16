@@ -46,6 +46,7 @@ interface LinearSidebarProps {
   isDemoMode: boolean;
   user?: User | null;
   onOpenAuthModal?: () => void;
+  onOpenSettingsModal?: () => void;
   onSignOut?: () => void;
 }
 
@@ -66,6 +67,7 @@ export const LinearSidebar: React.FC<LinearSidebarProps> = ({
   isDemoMode,
   user = null,
   onOpenAuthModal,
+  onOpenSettingsModal,
   onSignOut,
 }) => {
   const [teamOpen, setTeamOpen] = useState(true);
@@ -119,7 +121,7 @@ export const LinearSidebar: React.FC<LinearSidebarProps> = ({
               </svg>
             </div>
             <span className="truncate tracking-tight font-medium text-neutral-900 dark:text-neutral-100">
-              Brandby
+              CareerOps
             </span>
           </div>
         </div>
@@ -306,6 +308,7 @@ export const LinearSidebar: React.FC<LinearSidebarProps> = ({
             isAuthenticated: !!user,
           }}
           onOpenAuthModal={onOpenAuthModal}
+          onOpenSettingsModal={onOpenSettingsModal}
           onSignOut={onSignOut}
         />
 

@@ -1,5 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
+import { parseATSEmail } from '../src/lib/atsParsers/ats_engine.mjs';
 
 // ==============================================================================
 // Triage Pipeline, Retry & Confidence-Gating Test Suite (PRD 3.2 & 3.3)
@@ -171,5 +172,28 @@ describe('CareerOps Pipeline Reliability & Confidence Gating (3.2 & 3.3)', () =>
     const result = processPipelineEmail(rawEmail, geminiOutput);
 
     assert.strictEqual(result.route, 'ignored');
+  });
+
+  it('bypasses Gemini AI via ATS template parsing with >= 0.85 confidence and auto-upserts', () => {
+    const greenhouseEmail = {
+      thread_id: 'th_ats_01',
+      sender: 'Figma Recruiting <no-reply@gh-mail.io>',
+      subject: 'Thank you for applying to Figma!',
+      snippet: 'Thank you for your interest in the Senior Systems Engineer role at Figma.',
+      body_cleaned: 'Thank you for your interest in the Senior Systems Engineer position at Figma. Candidate portal: https://boards.greenhouse.io/figma/jobs/4829101',
+    };
+
+    // 1. Run ATS Template Extractor first (as in n8n pipeline)
+    const atsResult = parseATSEmail(greenhouseEmail);
+    assert.ok(atsResult !== null, 'Greenhouse email must match ATS parser');
+    assert.strictEqual(atsResult.company, 'Figma');
+    assert.strictEqual(atsResult.ats_source, 'greenhouse');
+    assert.strictEqual(atsResult.confidence_score, 0.98);
+
+    // 2. Pass ATS result into pipeline routing (bypassing Gemini entirely)
+    const pipelineResult = processPipelineEmail(greenhouseEmail, atsResult);
+    assert.strictEqual(pipelineResult.route, 'auto_upsert_applications');
+    assert.strictEqual(pipelineResult.item.is_approved, true);
+    assert.strictEqual(pipelineResult.item.confidence_score, 0.98);
   });
 });

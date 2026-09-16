@@ -11,11 +11,6 @@ import {
   AppNotification,
 } from "@/types/application";
 import {
-  INITIAL_MOCK_APPLICATIONS,
-  INITIAL_INTERVIEW_EVENTS,
-  INITIAL_TRIAGE_EMAILS,
-} from "@/lib/mockData";
-import {
   supabase,
   isSupabaseConfigured,
   fetchApplicationsFromSupabase,
@@ -41,61 +36,30 @@ import { KanbanBoard } from "@/components/KanbanBoard";
 import { ApplicationDetailModal } from "@/components/ApplicationDetailModal";
 import { ApplicationFormModal } from "@/components/ApplicationFormModal";
 import { AuthModal } from "@/components/AuthModal";
+import { SettingsModal } from "@/components/SettingsModal";
 import { InterviewCalendar } from "@/components/views/InterviewCalendar";
 import { ApplicationAnalytics } from "@/components/views/ApplicationAnalytics";
 import { AITriageInbox } from "@/components/views/AITriageInbox";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 
-const LOCAL_STORAGE_KEY = "job_tracker_applications_v1";
-const LOCAL_STORAGE_APPROVED_KEY = "job_tracker_approved_emails_v1";
-const LOCAL_STORAGE_DISMISSED_KEY = "job_tracker_dismissed_emails_v1";
-const LOCAL_STORAGE_NOTIFICATIONS_KEY = "job_tracker_notifications_v1";
-
-const INITIAL_NOTIFICATIONS: AppNotification[] = [
-  {
-    id: "notif-1",
-    application_id: "app-1",
-    title: "🎉 Job Offer Received!",
-    message: "Stripe extended an offer for Staff Frontend Engineer with compensation details.",
-    status: "offer",
-    company: "Stripe",
-    role: "Staff Frontend Engineer",
-    sender: "recruiter.sarah@stripe.com",
-    is_read: false,
-    created_at: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-  },
-  {
-    id: "notif-2",
-    application_id: "app-2",
-    title: "🎯 Interview Invitation!",
-    message: "Linear invited you to a Technical Architecture Screen next Tuesday.",
-    status: "interview",
-    company: "Linear",
-    role: "Product Designer & Engineer",
-    sender: "talent@linear.app",
-    is_read: false,
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-  },
-  {
-    id: "notif-3",
-    application_id: "app-3",
-    title: "💬 Recruiter Reply",
-    message: "Vercel recruiter sent a follow-up question regarding your availability.",
-    status: "reply",
-    company: "Vercel",
-    role: "Full Stack Engineer",
-    sender: "careers@vercel.com",
-    is_read: true,
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-  },
-];
+const LOCAL_STORAGE_KEY = "job_tracker_applications_v3";
+const LOCAL_STORAGE_APPROVED_KEY = "job_tracker_approved_emails_v3";
+const LOCAL_STORAGE_DISMISSED_KEY = "job_tracker_dismissed_emails_v3";
+const LOCAL_STORAGE_NOTIFICATIONS_KEY = "job_tracker_notifications_v3";
 
 export default function DashboardPage() {
-  const [applications, setApplications] = useState<JobApplication[]>(INITIAL_MOCK_APPLICATIONS);
+  const [applications, setApplications] = useState<JobApplication[]>([]);
   const [activeView, setActiveView] = useState<ActiveView>("board");
-  const [interviewEvents, setInterviewEvents] = useState<InterviewEvent[]>(INITIAL_INTERVIEW_EVENTS);
-  const [triageEmails, setTriageEmails] = useState<TriageEmail[]>(INITIAL_TRIAGE_EMAILS);
-  const [notifications, setNotifications] = useState<AppNotification[]>(INITIAL_NOTIFICATIONS);
+  const [interviewEvents, setInterviewEvents] = useState<InterviewEvent[]>([]);
+  const [triageEmails, setTriageEmails] = useState<TriageEmail[]>([]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+
+  const handleResetCleanState = useCallback(() => {
+    setApplications([]);
+    setInterviewEvents([]);
+    setTriageEmails([]);
+    setNotifications([]);
+  }, []);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoaded, setIsLoaded] = useState(true);
@@ -105,6 +69,7 @@ export default function DashboardPage() {
 
   const [user, setUser] = useState<User | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState<JobApplication | null>(null);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [editingApplication, setEditingApplication] = useState<JobApplication | null>(null);
@@ -170,22 +135,8 @@ export default function DashboardPage() {
             is_approved: approvedIds.has(em.id),
           }));
 
-          // Format sample mock emails
-          const sampleMockEmails = INITIAL_TRIAGE_EMAILS.map((em) => ({
-            ...em,
-            is_approved: approvedIds.has(em.id),
-          }));
-
-          // Merge: Real Supabase emails first, sample mock emails appended (avoid duplicates)
-          const combined = [...realEmailsFormatted];
-          sampleMockEmails.forEach((mock) => {
-            if (!combined.some((e) => e.id === mock.id || (e.thread_id && e.thread_id === mock.thread_id))) {
-              combined.push(mock);
-            }
-          });
-
           // Filter out dismissed
-          const activeEmails = combined.filter((e) => !dismissedIds.has(e.id));
+          const activeEmails = realEmailsFormatted.filter((e) => !dismissedIds.has(e.id));
           setTriageEmails(activeEmails);
         }
 
@@ -201,7 +152,7 @@ export default function DashboardPage() {
               setApplications(parsed);
             }
           } catch {
-            // Keep current mock data
+            // Keep empty state
           }
         }
 
@@ -215,7 +166,7 @@ export default function DashboardPage() {
           } catch {}
         }
 
-        // Apply local approval & dismissal in mock mode
+        // Apply local approval & dismissal in local mode
         setTriageEmails((prev) =>
           prev
             .filter((e) => !dismissedIds.has(e.id))
@@ -235,6 +186,17 @@ export default function DashboardPage() {
 
   useEffect(() => {
     loadData();
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get("calendar_connected") === "true") {
+        toast.success("Google Calendar connected successfully!");
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } else if (urlParams.get("calendar_error")) {
+        toast.error(`Google Calendar connection failed: ${urlParams.get("calendar_error")}`);
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+
     if (isSupabaseConfigured) {
       getCurrentUser().then(setUser);
       const { data: { subscription } } = onAuthStateChange((_event, session) => {
@@ -508,6 +470,21 @@ export default function DashboardPage() {
         console.error("Failed to sync status change to Supabase:", err);
       }
     }
+
+    // Google Calendar Auto-Sync Trigger
+    if (newStatus === "interview") {
+      fetch("/api/integrations/google-calendar/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ applicationId, application: updatedCard }),
+      }).catch(() => {});
+    } else if (newStatus === "rejected") {
+      fetch("/api/integrations/google-calendar/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ applicationId, action: "delete" }),
+      }).catch(() => {});
+    }
   };
 
   // 4. Upsert (Create / Edit) Handler
@@ -581,6 +558,13 @@ export default function DashboardPage() {
         console.error("Failed to delete application from Supabase:", err);
       }
     }
+
+    // Google Calendar Cancellation Trigger
+    fetch("/api/integrations/google-calendar/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ applicationId: id, action: "delete" }),
+    }).catch(() => {});
   };
 
   // 6. Modal Open Triggers
@@ -776,7 +760,7 @@ export default function DashboardPage() {
         company: "Stripe",
         role: "Staff Frontend Engineer",
         status: "offer" as ApplicationStatus,
-        title: "🎉 Job Offer Received!",
+        title: "Job Offer Received",
         message: "Stripe extended an official job offer! Review compensation package.",
         sender: "recruiter.sarah@stripe.com",
       },
@@ -784,7 +768,7 @@ export default function DashboardPage() {
         company: "Linear",
         role: "Product Engineer",
         status: "interview" as ApplicationStatus,
-        title: "🎯 Interview Invitation!",
+        title: "Interview Invitation",
         message: "Linear invited you to a System Architecture Round next Wednesday.",
         sender: "talent@linear.app",
       },
@@ -792,7 +776,7 @@ export default function DashboardPage() {
         company: "Google",
         role: "Senior Software Engineer",
         status: "reply" as ApplicationStatus,
-        title: "💬 Recruiter Reply",
+        title: "Recruiter Reply",
         message: "Recruiter reviewed your portfolio and requested 15-minute phone sync.",
         sender: "google-talent@google.com",
       },
@@ -800,7 +784,7 @@ export default function DashboardPage() {
         company: "Vercel",
         role: "Next.js Framework Engineer",
         status: "applied" as ApplicationStatus,
-        title: "📝 Application Submitted",
+        title: "Application Submitted",
         message: "Application confirmed by Vercel applicant tracking system.",
         sender: "jobs@vercel.com",
       },
@@ -846,6 +830,7 @@ export default function DashboardPage() {
         isDemoMode={!isSupabaseConfigured}
         user={user}
         onOpenAuthModal={() => setIsAuthModalOpen(true)}
+        onOpenSettingsModal={() => setIsSettingsModalOpen(true)}
         onSignOut={async () => {
           try {
             await signOutUser();
@@ -906,6 +891,7 @@ export default function DashboardPage() {
                 onViewApplication={setSelectedApplication}
                 onAddEvent={handleAddInterviewEvent}
                 openCreateTrigger={calendarAddEventTrigger}
+                onOpenSettingsModal={() => setIsSettingsModalOpen(true)}
               />
             </div>
           )}
@@ -969,6 +955,16 @@ export default function DashboardPage() {
         user={user}
         isDemoMode={!isSupabaseConfigured}
         onRefreshUser={loadData}
+      />
+
+      {/* Settings & Integrations Modal */}
+      <SettingsModal
+        open={isSettingsModalOpen}
+        onOpenChange={setIsSettingsModalOpen}
+        onSyncTriggered={loadData}
+        onResetCleanState={handleResetCleanState}
+        applications={applications}
+        events={interviewEvents}
       />
     </SidebarProvider>
   );

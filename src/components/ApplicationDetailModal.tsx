@@ -11,6 +11,7 @@ import {
   Edit2,
   Trash2,
   History,
+  ExternalLink,
 } from "lucide-react";
 import {
   Dialog,
@@ -28,6 +29,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { SenderAvatar } from "@/components/ui/sender-avatar";
+import { getATSSourceBadge } from "@/lib/atsParsers";
 
 interface ApplicationDetailModalProps {
   application: JobApplication | null;
@@ -173,6 +175,44 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                 <p className="font-medium text-foreground truncate text-xs">{application.sender || "Manual entry"}</p>
               </div>
             </div>
+
+            {/* ATS Source Platform info */}
+            {application.ats_source && application.ats_source !== "generic" && (() => {
+              const badge = getATSSourceBadge(application.ats_source);
+              if (!badge) return null;
+              return (
+                <div className="p-3 rounded-lg bg-secondary/50 border border-border space-y-1.5 col-span-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground text-[11px] font-medium">
+                      ATS Platform
+                    </span>
+                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-medium border ${badge.bgClass} ${badge.textClass} ${badge.borderClass}`}>
+                      {badge.name}
+                    </span>
+                  </div>
+                  {application.ats_metadata?.portal_url && (
+                    <div className="flex items-center justify-between text-xs pt-0.5">
+                      <span className="text-muted-foreground text-[11px]">Candidate Portal</span>
+                      <a
+                        href={application.ats_metadata.portal_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-primary hover:underline text-[11px] font-medium"
+                      >
+                        Open Portal
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
+                  )}
+                  {application.ats_metadata?.job_req_id && (
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground text-[11px]">Job Req ID</span>
+                      <span className="font-mono text-muted-foreground text-[11px]">{application.ats_metadata.job_req_id}</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           <Separator />

@@ -4,19 +4,65 @@ export type TriageStatus = ApplicationStatus | 'unparsed';
 
 export type ActiveView = 'board' | 'calendar' | 'analytics' | 'inbox';
 
+export type ATSSource =
+  | 'greenhouse'
+  | 'lever'
+  | 'workday'
+  | 'icims'
+  | 'ashby'
+  | 'smartrecruiters'
+  | 'generic'
+  | 'manual';
+
+export interface ATSMetadata {
+  ats_source?: ATSSource;
+  candidate_id?: string;
+  job_req_id?: string;
+  portal_url?: string;
+  matched_signature?: string;
+  extracted_by?: 'ats_template' | 'gemini_llm' | 'manual';
+  [key: string]: any;
+}
+
+export interface CalendarSettings {
+  default_time: string; // e.g. "10:00"
+  reminders: number[]; // minutes before event, e.g. [30, 1440]
+  auto_sync: boolean;
+}
+
+export interface UserIntegration {
+  id: string;
+  user_id: string;
+  provider: 'google_calendar' | 'discord' | 'telegram';
+  access_token?: string | null;
+  refresh_token?: string | null;
+  token_expires_at?: string | null;
+  calendar_id: string;
+  account_email?: string | null;
+  is_active: boolean;
+  settings: CalendarSettings;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface InterviewEvent {
   id: string;
+  user_id?: string;
   application_id?: string;
+  google_event_id?: string | null;
   company: string;
   role: string;
-  round: 'Recruiter Screen' | 'Technical Phone' | 'System Design' | 'Coding Assessment' | 'Behavioral' | 'Executive Round';
+  round: 'Recruiter Screen' | 'Technical Phone' | 'System Design' | 'Coding Assessment' | 'Behavioral' | 'Executive Round' | string;
   date: string; // ISO string or YYYY-MM-DD
   time?: string; // e.g. "14:00"
   duration?: string; // e.g. "45m"
+  is_confirmed_time?: boolean;
   interviewer?: string;
   meeting_url?: string;
   location?: string;
   notes?: string;
+  sync_status?: 'synced' | 'pending' | 'failed' | 'deleted';
+  last_synced_at?: string;
 }
 
 export interface TriageEmail {
@@ -38,6 +84,8 @@ export interface TriageEmail {
   summary: string;
   is_approved: boolean;
   status?: 'pending' | 'approved' | 'dismissed';
+  ats_source?: ATSSource;
+  ats_metadata?: ATSMetadata;
 }
 
 export interface AppNotification {
@@ -75,6 +123,8 @@ export interface JobApplication {
   subject?: string | null;
   summary?: string | null;
   history_log?: HistoryLogEntry[] | null;
+  ats_source?: ATSSource;
+  ats_metadata?: ATSMetadata;
   created_at?: string;
   updated_at?: string;
 }

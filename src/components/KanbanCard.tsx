@@ -21,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SenderAvatar } from "@/components/ui/sender-avatar";
+import { getATSSourceBadge } from "@/lib/atsParsers";
 
 interface KanbanCardProps {
   application: JobApplication;
@@ -136,6 +137,20 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
             <Calendar className="w-3 h-3 text-muted-foreground" />
             <span>{formatDate(latestDate)}</span>
           </span>
+
+          {/* ATS Source Badge */}
+          {application.ats_source && application.ats_source !== "generic" && (() => {
+            const atsBadge = getATSSourceBadge(application.ats_source);
+            if (!atsBadge) return null;
+            return (
+              <span
+                className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-medium border shrink-0 ${atsBadge.bgClass} ${atsBadge.textClass} ${atsBadge.borderClass}`}
+                title={`Captured via ${atsBadge.name} template`}
+              >
+                {atsBadge.name}
+              </span>
+            );
+          })()}
 
           {/* Action dropdown button (shadcn DropdownMenu) */}
           <div className="ml-auto shrink-0" onClick={(e) => e.stopPropagation()}>

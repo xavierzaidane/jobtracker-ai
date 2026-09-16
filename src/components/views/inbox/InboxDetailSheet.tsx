@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import { TriageEmail, ApplicationStatus } from "@/types/application";
-import { Sparkles, Check, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Sparkles, Check, CheckCircle2, AlertTriangle, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { getATSSourceBadge } from "@/lib/atsParsers";
 import {
   Sheet,
   SheetContent,
@@ -128,6 +129,42 @@ export const InboxDetailSheet: React.FC<InboxDetailSheetProps> = ({
               </span>
             </div>
           </div>
+
+          {/* ATS Platform Details (if detected) */}
+          {email.ats_source && email.ats_source !== "generic" && (() => {
+            const badge = getATSSourceBadge(email.ats_source);
+            if (!badge) return null;
+            return (
+              <div className="p-3.5 rounded-xl border border-border bg-card space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-xs text-foreground">ATS Platform Identified</span>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium border ${badge.bgClass} ${badge.textClass} ${badge.borderClass}`}>
+                    {badge.name}
+                  </span>
+                </div>
+                {email.ats_metadata?.portal_url && (
+                  <div className="flex items-center justify-between text-xs pt-1">
+                    <span className="text-muted-foreground text-[11px]">Candidate Portal:</span>
+                    <a
+                      href={email.ats_metadata.portal_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-primary hover:underline text-[11px] font-medium"
+                    >
+                      Open Link
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                )}
+                {email.ats_metadata?.job_req_id && (
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground text-[11px]">Job Req ID:</span>
+                    <span className="font-mono text-muted-foreground text-[11px]">{email.ats_metadata.job_req_id}</span>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Action: Status Selection */}
           {!email.is_approved && (

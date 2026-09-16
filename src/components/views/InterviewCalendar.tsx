@@ -1,8 +1,14 @@
 "use client"
 
-import React, { useMemo } from "react"
+import React, { useState, useEffect, useMemo } from "react"
 import { EventManager, type Event } from "@/components/ui/event-manager"
 import { InterviewEvent, JobApplication } from "@/types/application"
+import { GoogleCalendar } from "@/components/icons/logos-google-calendar"
+import { RefreshCw, Settings } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { toast } from "sonner"
+import { formatInterviewTitle } from "@/lib/googleCalendar"
 
 interface InterviewCalendarProps {
   events: InterviewEvent[]
@@ -10,6 +16,7 @@ interface InterviewCalendarProps {
   onViewApplication?: (application: JobApplication) => void
   onAddEvent?: (event: Partial<InterviewEvent>) => void
   openCreateTrigger?: number
+  onOpenSettingsModal?: () => void
 }
 
 function parseDateSafe(dateStr?: string | null, fallbackDate?: Date): Date {
@@ -26,7 +33,52 @@ export const InterviewCalendar: React.FC<InterviewCalendarProps> = ({
   onViewApplication,
   onAddEvent,
   openCreateTrigger,
+  onOpenSettingsModal,
 }) => {
+  const [isGCalConnected, setIsGCalConnected] = useState(false)
+  const [gcalEmail, setGcalEmail] = useState<string | null>(null)
+  const [isSyncing, setIsSyncing] = useState(false)
+
+  useEffect(() => {
+    fetch("/api/integrations/google-calendar/settings")
+      .then((r) => r.json())
+      .then((d) => {
+        setIsGCalConnected(Boolean(d.is_connected))
+        setGcalEmail(d.account_email || null)
+      })
+      .catch(() => {})
+  }, [])
+
+  const handleSyncGCal = async () => {
+    try {
+      setIsSyncing(true)
+      const interviewApps = (applications || []).filter((a) => a.status === "interview")
+      const res = await fetch("/api/integrations/google-calendar/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          events: events || [],
+          applications: interviewApps,
+        }),
+      })
+      const data = await res.json()
+      if (res.ok && data.success) {
+        const count = (data.synced_count || 0) + (data.updated_count || 0)
+        toast.success(
+          data.is_mock
+            ? `Demo synchronization complete (${count} event(s) synced).`
+            : `Google Calendar synced successfully! ${count} active event(s) on Google Calendar.`
+        )
+      } else {
+        const errMsg = data.errors?.[0] || data.error || "Failed to sync Google Calendar."
+        toast.error(errMsg)
+      }
+    } catch (e: any) {
+      toast.error("An error occurred during calendar synchronization.")
+    } finally {
+      setIsSyncing(false)
+    }
+  }
   // Convert tracker interview events and Kanban applications into EventManager Event objects
   const initialEvents: Event[] = useMemo(() => {
     const now = new Date()
@@ -80,19 +132,29 @@ export const InterviewCalendar: React.FC<InterviewCalendarProps> = ({
       // A. Primary Status Events
       if (app.status === "interview") {
         const d = parseDateSafe(app.latest_update_date || app.applied_date)
-        const startTime = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 14, 0)
-        const endTime = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 15, 0)
+        const explicitEvent = events.find((e) => e.application_id === app.id)
+        const isConfirmed = Boolean(explicitEvent?.time)
+        const [hh, mm] = (explicitEvent?.time || "10:00").split(":").map(Number)
+        const startTime = new Date(d.getFullYear(), d.getMonth(), d.getDate(), hh || 10, mm || 0)
+        const endTime = new Date(startTime.getTime() + 45 * 60 * 1000)
+
+        const title = formatInterviewTitle(
+          companyTag,
+          explicitEvent?.round || "Technical Interview",
+          isConfirmed
+        )
+
         kanbanEvents.push({
           id: `kanban-interview-${app.id}`,
-          title: `${companyTag}: Technical Interview`,
+          title,
           description:
             app.summary ||
-            `Interview scheduled for ${roleText} at ${companyTag}. Check inbox for interview link and preparation notes.`,
+            `Interview scheduled for ${roleText} at ${companyTag}. ${!isConfirmed ? "⚠️ Default estimated time (10:00 AM) - awaiting recruiter confirmation." : ""}`,
           startTime,
           endTime,
-          color: "blue",
+          color: isConfirmed ? "blue" : "orange",
           category: "Interview",
-          tags: [companyTag, "Interview", "High Priority"],
+          tags: [companyTag, isConfirmed ? "Interview" : "Time TBD", "High Priority"],
         })
       } else if (app.status === "offer") {
         const d = parseDateSafe(app.latest_update_date || app.applied_date)
@@ -100,7 +162,7 @@ export const InterviewCalendar: React.FC<InterviewCalendarProps> = ({
         const endTime = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0)
         kanbanEvents.push({
           id: `kanban-offer-${app.id}`,
-          title: `${companyTag}: Offer Received 🎉`,
+          title: `${companyTag}: Offer Received`,
           description:
             app.summary ||
             `Official job offer extended for ${roleText} at ${companyTag}. Review compensation and decision timeline.`,
@@ -230,6 +292,63 @@ export const InterviewCalendar: React.FC<InterviewCalendarProps> = ({
 
   return (
     <div className="h-full w-full flex flex-col min-h-0 bg-card overflow-hidden">
+      {/* Top Google Calendar Integration Bar */}
+      <div className="px-4 py-2.5 sm:px-6 border-b border-border bg-muted/20 flex items-center justify-between gap-3 text-xs shrink-0 flex-wrap">
+        <div className="flex items-center gap-2">
+          <GoogleCalendar size={18} />
+          <span className="font-semibold text-foreground">Google Calendar</span>
+          {isGCalConnected ? (
+            <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[10px] py-0 px-1.5 gap-1 font-normal">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              {gcalEmail || "Connected"}
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="text-[10px] py-0 px-1.5 text-muted-foreground font-normal">
+              Not Connected
+            </Badge>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          {isGCalConnected ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSyncGCal}
+              disabled={isSyncing}
+              className="h-7 text-xs gap-1.5 px-2 bg-background hover:bg-accent"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin" : ""}`} />
+              {isSyncing ? "Syncing..." : "Sync Now"}
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              onClick={() => {
+                if (onOpenSettingsModal) onOpenSettingsModal()
+                else window.location.href = "/api/integrations/google-calendar/connect"
+              }}
+              className="h-7 text-xs gap-1.5 px-2.5 bg-primary text-primary-foreground"
+            >
+              <GoogleCalendar size={14} className="shrink-0" />
+              Connect Calendar
+            </Button>
+          )}
+
+          {onOpenSettingsModal && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onOpenSettingsModal}
+              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+              title="Calendar Settings"
+            >
+              <Settings className="w-3.5 h-3.5" />
+            </Button>
+          )}
+        </div>
+      </div>
+
       <div className="flex-1 min-h-0 overflow-y-auto custom-scroll p-4 sm:p-6">
         <EventManager
           events={initialEvents}
