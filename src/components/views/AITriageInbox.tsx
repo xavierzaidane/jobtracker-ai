@@ -158,7 +158,7 @@ export const AITriageInbox: React.FC<AITriageInboxProps> = ({
   };
 
   return (
-    <div className="h-full w-full flex flex-col min-h-0 bg-card overflow-hidden">
+    <div className="h-full w-full flex flex-col min-h-0 bg-background overflow-hidden">
       {/* Scrollable Container */}
       <div className="flex-1 min-h-0 overflow-y-auto custom-scroll p-4 sm:p-6 max-w-8xl mx-auto w-full space-y-4">
         {/* Main Card Wrapper matching reference design */}

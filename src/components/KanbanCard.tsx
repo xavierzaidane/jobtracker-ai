@@ -94,7 +94,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
         draggable="true"
         onDragStart={(e) => handleDragStart(e as unknown as React.DragEvent, application)}
         onClick={() => onView(application)}
-        className="group relative cursor-grab rounded-lg p-3 bg-card text-card-foreground border border-border hover:border-border/80 hover:shadow-sm transition-colors active:cursor-grabbing active:shadow-none overflow-hidden text-[13px] select-none w-full min-w-0 break-words"
+        className="group relative cursor-grab rounded-lg p-3 bg-card dark:bg-background text-card-foreground border border-border hover:border-border/80 hover:shadow-sm transition-colors active:cursor-grabbing active:shadow-none overflow-hidden text-[13px] select-none w-full min-w-0 break-words"
       >
 
 

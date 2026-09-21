@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { JobApplication, ApplicationStatus, COLUMNS, ColumnDefinition } from "@/types/application";
 import { KanbanCard } from "./KanbanCard";
 import { DropIndicator } from "./DropIndicator";
-import { Plus, Clock } from "lucide-react";
+import { Plus, Clock, CircleDashed } from "lucide-react";
 
 interface KanbanBoardProps {
   applications: JobApplication[];
@@ -153,13 +153,11 @@ const Column: React.FC<ColumnProps> = ({
   };
 
   return (
-    <div className="w-[85vw] max-w-[340px] sm:w-[320px] md:w-[300px] lg:w-[320px] shrink-0 snap-center flex flex-col h-full max-h-full min-h-0 bg-input dark:bg-sidebar rounded-xl border border-transparent p-2 select-none">
+    <div className="w-[85vw] max-w-[340px] sm:w-[320px] md:w-[300px] lg:w-[320px] shrink-0 snap-center flex flex-col h-full max-h-full min-h-0 bg-input dark:bg-card rounded-xl border border-transparent p-2 select-none">
       {/* 1. Column Header - Pinned at top of column, shrink-0 */}
       <div className="flex items-center justify-between px-2 py-1.5 mb-1 text-foreground select-none shrink-0">
         <div className="flex items-center gap-2 min-w-0">
-          <span className={`w-3.5 h-3.5 rounded-full border-2 ${dotStyle.border} ${dotStyle.bg} flex items-center justify-center shrink-0`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${dotStyle.dot}`}></span>
-          </span>
+          <CircleDashed className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
           <span className="font-medium text-[13px] text-foreground truncate">{column.title}</span>
           <div className="flex items-center gap-1 text-muted-foreground text-[12px] ml-0.5 font-medium shrink-0">
             <Clock className="w-3 h-3 text-muted-foreground" />

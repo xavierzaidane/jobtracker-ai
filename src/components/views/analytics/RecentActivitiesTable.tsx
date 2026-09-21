@@ -265,19 +265,9 @@ export const RecentActivitiesTable: React.FC<RecentActivitiesTableProps> = ({
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => {
-                        if (row.origin === "inbox") {
-                          onNavigateView?.("inbox");
-                        } else {
-                          onNavigateView?.("board");
-                        }
-                      }}
+                      onClick={() => onNavigateView?.("board")}
                       className="w-7 h-7 rounded-md text-muted-foreground hover:text-foreground"
-                      title={
-                        row.origin === "inbox"
-                          ? "View in Inbox"
-                          : "View on Board"
-                      }
+                      title="View on Board"
                     >
                       <ArrowRight className="w-3.5 h-3.5" />
                     </Button>

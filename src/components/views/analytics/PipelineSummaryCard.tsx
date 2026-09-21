@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Zap, Inbox, MoreVertical } from "lucide-react";
+import { Zap, Kanban, MoreVertical } from "lucide-react";
 import { ActiveView, JobApplication } from "@/types/application";
 
 interface PipelineSummaryCardProps {
@@ -114,11 +114,11 @@ export const PipelineSummaryCard: React.FC<PipelineSummaryCardProps> = ({
           </Button>
           <Button
             variant="secondary"
-            onClick={() => onNavigateView?.("inbox")}
+            onClick={() => onNavigateView?.("board")}
             className="bg-muted hover:bg-muted/80 text-secondary-foreground font-medium h-10 rounded-full flex items-center justify-center gap-1.5 border border-border transition-all text-xs sm:text-sm active:scale-[0.98]"
           >
-            <Inbox className="w-4 h-4" />
-            <span>Triage Inbox</span>
+            <Kanban className="w-4 h-4" />
+            <span>View Board</span>
           </Button>
         </div>
       </div>

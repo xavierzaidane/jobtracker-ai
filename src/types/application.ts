@@ -2,7 +2,7 @@ export type ApplicationStatus = 'applied' | 'reply' | 'interview' | 'offer' | 'r
 
 export type TriageStatus = ApplicationStatus | 'unparsed';
 
-export type ActiveView = 'board' | 'calendar' | 'analytics' | 'inbox';
+export type ActiveView = 'board' | 'calendar' | 'analytics';
 
 export type ATSSource =
   | 'greenhouse'
@@ -14,6 +14,12 @@ export type ATSSource =
   | 'generic'
   | 'manual';
 
+export interface SuggestedReply {
+  subject: string;
+  body: string;
+  intent?: 'interview_accept' | 'interview_reschedule' | 'skill_test_acknowledge' | string;
+}
+
 export interface ATSMetadata {
   ats_source?: ATSSource;
   candidate_id?: string;
@@ -21,6 +27,7 @@ export interface ATSMetadata {
   portal_url?: string;
   matched_signature?: string;
   extracted_by?: 'ats_template' | 'gemini_llm' | 'manual';
+  suggested_reply?: SuggestedReply;
   [key: string]: any;
 }
 
@@ -104,10 +111,11 @@ export interface AppNotification {
 
 export interface HistoryLogEntry {
   date: string;
-  status: ApplicationStatus;
+  status: ApplicationStatus | 'reply_sent' | string;
   summary?: string;
   subject?: string;
   sender?: string;
+  action?: 'send' | 'draft' | string;
 }
 
 export interface JobApplication {
@@ -125,6 +133,7 @@ export interface JobApplication {
   history_log?: HistoryLogEntry[] | null;
   ats_source?: ATSSource;
   ats_metadata?: ATSMetadata;
+  suggested_reply?: SuggestedReply;
   created_at?: string;
   updated_at?: string;
 }

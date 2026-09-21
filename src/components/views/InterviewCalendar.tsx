@@ -291,7 +291,7 @@ export const InterviewCalendar: React.FC<InterviewCalendarProps> = ({
   }, [applications])
 
   return (
-    <div className="h-full w-full flex flex-col min-h-0 bg-card overflow-hidden">
+    <div className="h-full w-full flex flex-col min-h-0 bg-background overflow-hidden">
       {/* Top Google Calendar Integration Bar */}
       <div className="px-4 py-2.5 sm:px-6 border-b border-border bg-muted/20 flex items-center justify-between gap-3 text-xs shrink-0 flex-wrap">
         <div className="flex items-center gap-2">

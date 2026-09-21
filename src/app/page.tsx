@@ -750,7 +750,7 @@ export default function DashboardPage() {
     if (notif.status === "interview") {
       setActiveView("calendar");
     } else {
-      setActiveView("inbox");
+      setActiveView("board");
     }
   };
 
@@ -870,7 +870,7 @@ export default function DashboardPage() {
 
           {/* View Container */}
           {activeView === "board" && (
-            <div className="flex-1 min-h-0 w-full overflow-x-auto overflow-y-hidden custom-scroll p-3 sm:p-4 bg-card">
+            <div className="flex-1 min-h-0 w-full overflow-x-auto overflow-y-hidden custom-scroll p-3 sm:p-4 bg-background">
               <KanbanBoard
                 applications={filteredApplications}
                 onStatusChange={handleStatusChange}
@@ -911,19 +911,6 @@ export default function DashboardPage() {
               />
             </div>
           )}
-
-          {activeView === "inbox" && (
-            <div className="flex-1 min-h-0 w-full overflow-hidden bg-card">
-              <AITriageInbox
-                emails={triageEmails}
-                onApproveEmail={handleApproveTriageEmail}
-                onDismissEmail={handleDismissTriageEmail}
-                onBatchApproveEmails={handleBatchApproveTriageEmails}
-                filter={triageFilter}
-                onFilterChange={setTriageFilter}
-              />
-            </div>
-          )}
         </div>
       </SidebarInset>
 
@@ -937,6 +924,12 @@ export default function DashboardPage() {
         }}
         onDelete={handleDeleteApplication}
         onStatusChange={handleStatusChange}
+        onApplicationUpdate={(updatedApp) => {
+          setSelectedApplication(updatedApp);
+          setApplications((prev) =>
+            prev.map((a) => (a.id === updatedApp.id ? updatedApp : a))
+          );
+        }}
       />
 
       {/* Form Modal (Add / Edit) */}

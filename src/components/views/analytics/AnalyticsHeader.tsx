@@ -40,17 +40,6 @@ export const AnalyticsHeader: React.FC<AnalyticsHeaderProps> = ({
           <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
           <span>{totalApplications} Applications Active</span>
         </span>
-        {pendingInboxCount > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onNavigateView?.("inbox")}
-            className="h-7 px-2.5 rounded-full text-xs font-medium bg-secondary hover:bg-secondary/80 text-secondary-foreground border border-border transition-colors"
-          >
-            <Inbox className="w-3 h-3 mr-1 text-primary" />
-            <span>{pendingInboxCount} to Triage</span>
-          </Button>
-        )}
       </div>
     </div>
   );

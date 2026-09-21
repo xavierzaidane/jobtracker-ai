@@ -65,7 +65,6 @@ export const LinearHeader: React.FC<LinearHeaderProps> = ({
   const getBreadcrumbLabel = () => {
     if (activeView === "calendar") return "Interview Calendar";
     if (activeView === "analytics") return "Analytics & Funnel";
-    if (activeView === "inbox") return "AI Triage Inbox";
 
     switch (activeStatusFilter) {
       case "applied":
@@ -173,47 +172,6 @@ export const LinearHeader: React.FC<LinearHeaderProps> = ({
             <Plus className="w-3.5 h-3.5" />
             <span>New Event</span>
           </Button>
-        )}
-
-        {activeView === "inbox" && (
-          <div className="flex items-center gap-2">
-            {/* Live Indicator with n8n logo */}
-            <span className="hidden md:inline-flex items-center gap-1.5 text-[11px] font-medium text-foreground bg-muted/60 px-2.5 py-1 rounded-lg border border-border ">
-              <img
-                src="/n8n-color.png"
-                alt="n8n"
-                className="w-4 h-4 object-contain shrink-0"
-              />
-              <span>Live</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-            </span>
-
-            {/* Segmented Filter Pills */}
-            <div className="flex items-center gap-0.5 bg-muted p-0.5 rounded-lg text-xs">
-              <button
-                type="button"
-                onClick={() => onTriageFilterChange?.("pending")}
-                className={`px-2.5 py-1 rounded-md transition font-medium text-[11px] ${
-                  triageFilter === "pending"
-                    ? "bg-input dark:bg-card text-foreground shadow-2xs font-normal"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Pending ({pendingTriageCount})
-              </button>
-              <button
-                type="button"
-                onClick={() => onTriageFilterChange?.("approved")}
-                className={`px-2.5 py-1 rounded-md transition font-medium text-[11px] ${
-                  triageFilter === "approved"
-                    ? "bg-input dark:bg-card text-foreground shadow-2xs font-normal"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Approved ({approvedTriageCount})
-              </button>
-            </div>
-          </div>
         )}
       </div>
     </header>

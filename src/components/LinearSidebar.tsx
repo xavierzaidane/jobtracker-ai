@@ -107,19 +107,7 @@ export const LinearSidebar: React.FC<LinearSidebarProps> = ({
       <SidebarHeader className="p-3 pb-2 pt-5 gap-2 border-none">
         <div className="flex items-center justify-between">
           {/* Brand Logo & Name */}
-          <div className="flex items-center gap-2 text-foreground font-medium text-[13.5px]">
-            <div className="w-5.5 h-5.5 rounded-md bg-[#1c1d1f] flex items-center justify-center shrink-0 shadow-xs p-1">
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="5" cy="5" r="1.2" fill="#D2FD29" />
-                <circle cx="11" cy="5" r="1.2" fill="#D2FD29" />
-                <circle cx="5" cy="11" r="1.2" fill="#D2FD29" />
-                <circle cx="11" cy="11" r="1.2" fill="#D2FD29" />
-                <line x1="2.5" y1="5" x2="13.5" y2="5" stroke="#D2FD29" strokeWidth="1.3" strokeLinecap="round" />
-                <line x1="2.5" y1="11" x2="13.5" y2="11" stroke="#D2FD29" strokeWidth="1.3" strokeLinecap="round" />
-                <line x1="5" y1="2.5" x2="5" y2="13.5" stroke="#D2FD29" strokeWidth="1.3" strokeLinecap="round" />
-                <line x1="11" y1="2.5" x2="11" y2="13.5" stroke="#D2FD29" strokeWidth="1.3" strokeLinecap="round" />
-              </svg>
-            </div>
+          <div className="flex items-center gap-2 text-foreground font-medium text-md">
             <span className="truncate tracking-tight font-medium text-neutral-900 dark:text-neutral-100">
               CareerOps
             </span>
@@ -144,27 +132,8 @@ export const LinearSidebar: React.FC<LinearSidebarProps> = ({
 
       {/* Main Content */}
       <SidebarContent className="custom-scroll px-2 py-0 flex flex-col gap-0.5">
-        {/* Top Navigation: Inbox & My issues */}
+        {/* Top Navigation: My issues */}
         <div className="flex flex-col gap-0.5 px-1 py-0.5">
-          <button
-            type="button"
-            onClick={() => onSelectView?.("inbox")}
-            className={`flex items-center justify-between px-2 py-1.5 rounded-md text-[13px] transition-colors text-left ${
-              activeView === "inbox"
-                ? "bg-neutral-200/70 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 font-medium"
-                : "text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800"
-            }`}
-          >
-            <div className="flex items-center gap-2.5">
-              <Inbox className="w-4 h-4 text-neutral-500 shrink-0" />
-              <span>Inbox</span>
-            </div>
-            {pendingTriageCount > 0 && (
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-primary text-primary-foreground font-semibold">
-                {pendingTriageCount}
-              </span>
-            )}
-          </button>
           <button
             type="button"
             onClick={() => {
@@ -200,7 +169,7 @@ export const LinearSidebar: React.FC<LinearSidebarProps> = ({
             className="w-full flex items-center justify-between px-2 py-1 text-left rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800/50 transition-colors"
           >
             <div className="flex items-center gap-2">
-              <Sprout className="w-4 h-4 text-emerald-500 shrink-0" />
+              <Sprout className="w-4 h-4 text-primary shrink-0" />
               <span className="text-[13px] font-medium text-neutral-800 dark:text-neutral-200">
                 Workbench
               </span>
